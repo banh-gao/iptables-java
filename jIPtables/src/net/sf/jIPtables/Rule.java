@@ -22,7 +22,6 @@ package net.sf.jIPtables;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.sf.jIPtables.connection.Connection;
 
 /**
  * A rule for the firewall. You can specify the generic rule options, a protocol
