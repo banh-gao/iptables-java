@@ -1,0 +1,19 @@
+JIPtables - Java api for linux firewall
+by Daniel Zozin <daniel.zozin@gmail.com>
+
+This API provide an iterface to the iptables firewall, to linux netfilter log and connection api
+
+The jIPtables rule management allow to parse, generate and apply the iptables rules from java.
+The log tracker notify the listeners for low level netfilter logs.
+The connection tracker notify the listeners for established connections and connection state changes.
+
+
+INSTALLATION
+In order to compile jIPtables requires the libnetfilter_log and libnetfilter_conntrack.
+You can download them at http://www.netfilter.org/
+For the compilation go in the main directory and run:
+
+ant build
+
+The ant script will generate 3 files, the jar library and 2 .so shared libraries.
+The shared libraries should be in a system library directory.

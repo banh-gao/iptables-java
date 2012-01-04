@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="build" name="jIPtables">
+	<property environment="env" />
+	<property name="debuglevel" value="source,lines,vars" />
+	<property name="target" value="1.6" />
+	<property name="source" value="1.6" />
+	<path id="jIPtables.classpath">
+		<pathelement location="bin" />
+	</path>
+	<target depends="build-project,build-native" name="build" />
+	<target name="build-project">
+		<mkdir dir="bin" />
+		<copy includeemptydirs="false" todir="bin">
+			<fileset dir="src">
+				<exclude name="**/*.launch" />
+				<exclude name="**/*.java" />
+			</fileset>
+		</copy>
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}" includeantruntime="false">
+			<src path="src" />
+			<classpath refid="jIPtables.classpath" />
+		</javac>
+		<jar basedir="bin" destfile="jiptables.jar" excludes="**.c" />
+	</target>
+	<target name="build-native" depends="build-project" description="Build the platform dependent native interface to the netfilter kernel component.">
+		<exec executable="gcc">
+			<arg line="-l netfilter_log_libipulog -I ./include -shared -o libjiptables_log.so src/jiptables_log.c" />
+		</exec>
+		<exec executable="gcc">
+			<arg line="-l netfilter_conntrack -I ./include -shared -o libjiptables_conntrack.so src/jiptables_conntrack.c" />
+		</exec>
+	</target>
+	<target name="clean">
+		<delete dir="bin" />
+		<delete file="jiptables.jar" />
+		<delete file="libjiptables_log.so" />
+		<delete file="libjiptables_conntrack.so" />
+	</target>
+</project>
