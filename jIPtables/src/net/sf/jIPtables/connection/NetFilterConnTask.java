@@ -11,12 +11,11 @@ class NetFilterConnTask extends Thread {
 	Map<Long, Connection> connections = new HashMap<Long, Connection>();
 
 	boolean terminate = false;
-	
+
 	static {
 		System.loadLibrary("jiptables_conntrack");
 	}
-	
-	
+
 	public NetFilterConnTask() {
 		start();
 	}
@@ -30,7 +29,7 @@ class NetFilterConnTask extends Thread {
 	 * Initialize the netfilter listener
 	 */
 	private native void init();
-	
+
 	/**
 	 * Deinitialize the netfilter listener
 	 */
@@ -50,35 +49,29 @@ class NetFilterConnTask extends Thread {
 		return conn;
 	}
 
-	/**
-	 * Called from native code for new connection notification
-	 */
+	// Called from native code for new connection notification
 	private void notifyNewConnection(Object newConnection) {
 		if (newConnection instanceof Connection)
-			for (ConnectionListener l : ConnectionTracker.listeners)
+			for (ConnectionListener l : ConnectionTracker.connectionListeners)
 				l.onConnectionStarted((Connection) newConnection);
 	}
 
-	/**
-	 * Called from native code for updated connection notification
-	 */
+	// Called from native code for updated connection notification
 	private void notifyUpdatedConnection(Object updatedConnection) {
 		if (updatedConnection instanceof Connection)
-			for (ConnectionListener l : ConnectionTracker.listeners)
+			for (ConnectionListener l : ConnectionTracker.connectionListeners)
 				l.onConnectionStateChanged((Connection) updatedConnection);
 	}
 
-	/**
-	 * Called from native code for destroyed connection notification
-	 */
-	private void notifyDestroyedConnection(Object destroyedConnection) {
-		if (!(destroyedConnection instanceof Connection))
+	// Called from native code for terminated connection notification
+	private void notifyTerminatedConnection(Object terminatedConnection) {
+		if (!(terminatedConnection instanceof Connection))
 			return;
 
-		for (ConnectionListener l : ConnectionTracker.listeners)
-			l.onConnectionTerminated((Connection) destroyedConnection);
-		
-		connections.remove(((Connection) destroyedConnection).getId());
+		for (ConnectionListener l : ConnectionTracker.connectionListeners)
+			l.onConnectionTerminated((Connection) terminatedConnection);
+
+		connections.remove(((Connection) terminatedConnection).getId());
 	}
 
 	/**
@@ -89,11 +82,11 @@ class NetFilterConnTask extends Thread {
 	}
 
 	/**
-	 * @return True if this task is terminated or is terminating
+	 * @return True if this task is terminated or a termination request is
+	 *         pending
 	 */
 	public boolean isTerminated() {
 		return terminate;
 	}
-	
-	
+
 }

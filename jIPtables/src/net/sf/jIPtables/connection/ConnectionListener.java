@@ -30,27 +30,7 @@ package net.sf.jIPtables.connection;
  */
 public interface ConnectionListener {
 
-	/**
-	 * Called when the connection state changes
-	 * 
-	 * @param connection
-	 *            The connection that changes
-	 */
-	public void onConnectionStateChanged(Connection connection);
-
-	/**
-	 * Called when a new connection is started
-	 * 
-	 * @param connection
-	 *            The started connection
-	 */
-	public void onConnectionStarted(Connection connection);
-
-	/**
-	 * Called when a connection is terminated
-	 * 
-	 * @param connection
-	 *            The terminated connection
-	 */
-	public void onConnectionTerminated(Connection connection);
+	public void onConnectionStateChanged(Connection changedConnection);
+	public void onConnectionStarted(Connection startedConnection);
+	public void onConnectionTerminated(Connection terminatedConnection);
 }

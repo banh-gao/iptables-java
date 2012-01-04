@@ -33,16 +33,13 @@ import java.util.List;
  */
 public class ConnectionTracker {
 
-	/**
-	 * Registered connection listeners
-	 */
-	static final List<ConnectionListener> listeners = new ArrayList<ConnectionListener>();
+	static final List<ConnectionListener> connectionListeners = new ArrayList<ConnectionListener>();
 
 	private static NetFilterConnTask listenerTask = new NetFilterConnTask();
 
 	/**
-	 * Add a connection listener that will be notified when a connection event
-	 * happen
+	 * Register a connection listener to be notified when a connection event
+	 * happens, the connection events are the ones defined by the {@link ConnectionListener} interface
 	 * 
 	 * @throws NullPointerException
 	 *             If the specified listener is null
@@ -50,7 +47,7 @@ public class ConnectionTracker {
 	public static synchronized void addConnectionListener(ConnectionListener l) {
 		if (l == null)
 			throw new NullPointerException();
-		listeners.add(l);
+		connectionListeners.add(l);
 
 		if (listenerTask.isTerminated()) {
 			listenerTask = new NetFilterConnTask();
@@ -58,7 +55,7 @@ public class ConnectionTracker {
 	}
 
 	/**
-	 * Remove a connection listener
+	 * Unregister a connection listener
 	 * 
 	 * @throws NullPointerException
 	 *             If the specified listener is null
@@ -66,8 +63,8 @@ public class ConnectionTracker {
 	public static synchronized void removeConnectionListener(ConnectionListener l) {
 		if (l == null)
 			throw new NullPointerException();
-		listeners.remove(l);
-		if (listeners.size() == 0)
+		connectionListeners.remove(l);
+		if (connectionListeners.size() == 0)
 			listenerTask.requestTerminate();
 	}
 }

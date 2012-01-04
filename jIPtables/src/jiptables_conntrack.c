@@ -39,7 +39,7 @@ jmethodID buildMethod;
 jmethodID terminateMethod;
 jmethodID newNotificationMethod;
 jmethodID updateNotificationMethod;
-jmethodID destroyedNotificationMethod;
+jmethodID terminatedNotificationMethod;
 struct nfct_handle *h;
 
 const char * const proto2str[IPPROTO_MAX] = {
@@ -174,7 +174,7 @@ static int cb(enum nf_conntrack_msg_type type, struct nf_conntrack *ct, void *da
 		(*env)->CallVoidMethod(env, obj, updateNotificationMethod, conn);
 		break;
 	case NFCT_T_DESTROY:
-		(*env)->CallVoidMethod(env, obj, destroyedNotificationMethod, conn);
+		(*env)->CallVoidMethod(env, obj, terminatedNotificationMethod, conn);
 		break;
 	}
 
@@ -195,7 +195,7 @@ JNIEXPORT void JNICALL Java_net_sf_jIPtables_connection_NetFilterConnTask_init (
 
 	newNotificationMethod = (*env)->GetMethodID(env, cls, "notifyNewConnection", "(Ljava/lang/Object;)V");
 	updateNotificationMethod = (*env)->GetMethodID(env, cls, "notifyUpdatedConnection", "(Ljava/lang/Object;)V");
-	destroyedNotificationMethod = (*env)->GetMethodID(env, cls, "notifyDestroyedConnection", "(Ljava/lang/Object;)V");
+	terminatedNotificationMethod = (*env)->GetMethodID(env, cls, "notifyTerminatedConnection", "(Ljava/lang/Object;)V");
 
 	h = nfct_open(CONNTRACK, NFCT_ALL_CT_GROUPS);
 
