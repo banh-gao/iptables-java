@@ -28,11 +28,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,12 +55,12 @@ public class Packet {
 	private String protocol;
 
 	private String prefix;
-	
+
 	protected int nfGroup;
 
 	protected Packet() {
 	}
-	
+
 	/**
 	 * Return a packet implementation related to the specified protocol
 	 */
@@ -81,9 +77,9 @@ public class Packet {
 			return new SCTPPacket();
 		else if ("arp".equals(ipProtocol))
 			return new ARPPacket();
-		else if("ipv4".equals(ipProtocol))
+		else if ("ipv4".equals(ipProtocol))
 			return new IPv4Packet();
-		else if("ipv6".equals(ipProtocol))
+		else if ("ipv6".equals(ipProtocol))
 			return new IPv6Packet();
 		else
 			return new Packet();
@@ -108,21 +104,6 @@ public class Packet {
 			outInterface = parseInterface(value);
 		else if ("sec".equals(field))
 			date = new Date(Long.parseLong(value));
-	}
-
-	/**
-	 * @return The parsed date, uses the US locale
-	 */
-	static Date parseDate(String rawData) {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy MMM dd HH:mm:ss", Locale.US);
-		try {
-			rawData = (Calendar.getInstance().get(Calendar.YEAR)) + " " + rawData;
-			Date d = sdf.parse(rawData);
-			return d;
-		} catch (ParseException e) {
-			e.printStackTrace();
-			return new Date(0);
-		}
 	}
 
 	/**
@@ -275,7 +256,7 @@ public class Packet {
 	public long getHook() {
 		return hook;
 	}
-	
+
 	/**
 	 * @return The netfilter group
 	 */

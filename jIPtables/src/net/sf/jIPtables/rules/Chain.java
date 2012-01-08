@@ -24,6 +24,7 @@
 
 package net.sf.jIPtables.rules;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -37,35 +38,18 @@ import java.util.regex.Pattern;
  */
 public class Chain extends Command implements Iterable<Rule>, Cloneable {
 
-	private static final Pattern chainPattern = Pattern.compile(":[\\s]*([^ ]*)[\\s]*([^ ]*)[\\s]*\\[(\\d*):(\\d*)\\]");
+	protected static final Pattern chainPattern = Pattern.compile(":[\\s]*([^ ]*)[\\s]*([^ ]*)]*[\\s]*(\\[(\\d*):(\\d*)\\])*");
 
-	/**
-	 * The chain name
-	 */
-	private final String name;
-	/**
-	 * The number of packets
-	 */
-	private long packets;
-	/**
-	 * The number of bytes
-	 */
-	private long bytes;
+	private static final Policy PREDEFINED_POLICY = Policy.ACCEPT;
 
-	/**
-	 * The default policy
-	 */
-	private Policy defaultPolicy = Policy.ACCEPT;
-
-	/**
-	 * The default policy of the chain, only built-in chains supports the
-	 * default
-	 * policy
-	 * 
-	 */
 	public enum Policy {
 		ACCEPT, DROP, REJECT
 	};
+
+	private final String chainName;
+	private long packetsNum;
+	private long bytesNum;
+	private Policy defaultPolicy = PREDEFINED_POLICY;
 
 	private final List<Rule> rules = new LinkedList<Rule>();
 
@@ -78,7 +62,7 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	public Chain(String name) {
 		if (name == null)
 			throw new IllegalArgumentException("Invalid chain name");
-		this.name = name;
+		this.chainName = name;
 	}
 
 	/**
@@ -93,39 +77,60 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 		if (chain == null)
 			throw new NullPointerException();
 
-		Matcher m = Chain.chainPattern.matcher(chain);
-		m.find();
-		Chain c;
-
-		if (m.groupCount() != 4)
+		System.out.println(chain);
+		
+		Matcher chainMatcher = chainPattern.matcher(chain);
+		
+		if (!chainMatcher.find())
 			throw new ParsingException("Invalid chain format");
 
-		c = new Chain(m.group(1));
-		if ("ACCEPT".equalsIgnoreCase(m.group(2)))
-			c.setDefaultPolicy(Policy.ACCEPT);
-		else if ("DROP".equalsIgnoreCase(m.group(2)))
-			c.setDefaultPolicy(Policy.DROP);
+		return buildParsedChain(chainMatcher);
+	}
 
-		if (m.groupCount() == 4) {
-			c.setPacketsNum(Long.parseLong(m.group(3)));
-			c.setBytesNum(Long.parseLong(m.group(4)));
-		}
-		return c;
+	private static Chain buildParsedChain(Matcher chainMatcher) {
+		Chain newChain = new Chain(chainMatcher.group(1));
+
+		newChain.setDefaultPolicy(parseDefaultPolicy(chainMatcher));
+		newChain.setPacketsNum(parsePacketsNum(chainMatcher));
+		newChain.setBytesNum(parseBytesNum(chainMatcher));
+
+		return newChain;
+	}
+
+	private static Policy parseDefaultPolicy(Matcher chainMatcher) {
+		if ("ACCEPT".equalsIgnoreCase(chainMatcher.group(2)))
+			return Policy.ACCEPT;
+		else if ("DROP".equalsIgnoreCase(chainMatcher.group(2)))
+			return Policy.DROP;
+		else
+			return PREDEFINED_POLICY;
+	}
+
+	private static long parsePacketsNum(Matcher chainMatcher) {
+		return Long.parseLong(chainMatcher.group(4));
+	}
+
+	private static long parseBytesNum(Matcher chainMatcher) {
+		return Long.parseLong(chainMatcher.group(5));
 	}
 
 	@Override
 	public String getCommand() {
-		StringBuilder out = new StringBuilder(":" + name + " " + defaultPolicy);
-		if (packets > -1 && bytes > -1)
-			out.append(" [" + packets + ":" + bytes + "]\n");
-		for (Rule r : rules) {
-			if (r.getPacketsNum() > 0 && r.getBytesNum() > 0)
-				out.append("[" + r.getPacketsNum() + ":" + r.getBytesNum() + "] ");
+		StringBuilder outCommand = new StringBuilder(":" + chainName + " " + defaultPolicy);
 
-			out.append("-A " + name + r.getCommand() + "\n");
+		appendDataCounters(outCommand, packetsNum, bytesNum);
+		outCommand.append('\n');
+
+		for (Rule rule : rules) {
+			appendDataCounters(outCommand, rule.getPacketsNum(), rule.getBytesNum());
+			outCommand.append("-A " + chainName + rule.getCommand() + "\n");
 		}
-		out.delete(out.length() - 1, out.length());
-		return out.toString();
+		return outCommand.toString();
+	}
+
+	private void appendDataCounters(StringBuilder outCommand, long packetsNum, long bytesNum) {
+		if (packetsNum > -1 && bytesNum > -1)
+			outCommand.append(" [" + packetsNum + ":" + bytesNum + "]");
 	}
 
 	/**
@@ -139,7 +144,7 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 		if (rule == null)
 			throw new NullPointerException();
 		rules.add(rule);
-		rule.chainName = name;
+		rule.chainName = chainName;
 		rule.ruleNumber = rules.size();
 	}
 
@@ -148,7 +153,7 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	 *         order of insertion
 	 */
 	public List<Rule> getRules() {
-		return Collections.unmodifiableList(rules);
+		return new ArrayList<Rule>(rules);
 	}
 
 	/**
@@ -160,7 +165,7 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	public void setPacketsNum(long packets) {
 		if (packets < 0)
 			throw new IllegalArgumentException("The packets number cannot be less than 0, " + packets + " given");
-		this.packets = packets;
+		this.packetsNum = packets;
 	}
 
 	/**
@@ -172,28 +177,28 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	public void setBytesNum(long bytes) {
 		if (bytes < 0)
 			throw new IllegalArgumentException("The bytes number cannot be less than 0, " + bytes + " given");
-		this.bytes = bytes;
+		this.bytesNum = bytes;
 	}
 
 	/**
 	 * @return The chain name
 	 */
 	public String getName() {
-		return name;
+		return chainName;
 	}
 
 	/**
 	 * @return The number of packets that matches this chain
 	 */
 	public long getPacketsNum() {
-		return packets;
+		return packetsNum;
 	}
 
 	/**
 	 * @return The number of bytes that matches this chain
 	 */
 	public long getBytesNum() {
-		return bytes;
+		return bytesNum;
 	}
 
 	/**
@@ -231,8 +236,36 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	}
 
 	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Chain other = (Chain) obj;
+		if (bytesNum != other.bytesNum)
+			return false;
+		if (chainName == null) {
+			if (other.chainName != null)
+				return false;
+		} else if (!chainName.equals(other.chainName))
+			return false;
+		if (defaultPolicy != other.defaultPolicy)
+			return false;
+		if (packetsNum != other.packetsNum)
+			return false;
+		if (rules == null) {
+			if (other.rules != null)
+				return false;
+		} else if (!rules.equals(other.rules))
+			return false;
+		return true;
+	}
+
+	@Override
 	public String toString() {
-		StringBuilder out = new StringBuilder("Chain " + name + " (policy " + defaultPolicy + " " + packets + " packets, " + bytes + " bytes)\n");
+		StringBuilder out = new StringBuilder("Chain " + chainName + " (policy " + defaultPolicy + " " + packetsNum + " packets, " + bytesNum + " bytes)\n");
 		for (Rule r : rules)
 			out.append(r.toString() + "\n");
 		return out.toString();
