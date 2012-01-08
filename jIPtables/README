@@ -11,9 +11,13 @@ The connection tracker notify the listeners for established connections and conn
 INSTALLATION
 In order to compile jIPtables requires the libnetfilter_log and libnetfilter_conntrack.
 You can download them at http://www.netfilter.org/
-For the compilation go in the main directory and run:
 
-ant build
+On Debian or Ubuntu just run:
+sudo apt-get install libnetfilter-log-dev libnetfilter-conntrack-dev
+
+For the compilation go in the main directory and run ant and set the jnidir param to the directory path where your virtual machine jni header files are stored:
+
+ant build -Djnidir=VMHeadersDir
 
 The ant script will generate 3 files, the jar library and 2 .so shared libraries.
-The shared libraries should be in a system library directory.
+The shared libraries should be in a system library directory or in the same directory of the jar.
