@@ -1,5 +1,5 @@
 JIPtables - Java api for linux firewall
-by Daniel Zozin <daniel.zozin@gmail.com>
+by Daniel Zozin <zdenial@gmx.com>
 
 This API provide an iterface to the iptables firewall, to linux netfilter log and connection api
 

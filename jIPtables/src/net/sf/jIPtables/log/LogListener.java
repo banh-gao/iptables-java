@@ -2,7 +2,7 @@
  * @package jIPtables
  * @copyright Copyright (C) 2011 jIPtables. All rights reserved.
  * @license GNU/GPL, see COPYING file
- * @author "Daniel Zozin <daniel.zozin@gmail.com>"
+ * @author "Daniel Zozin <zdenial@gmx.com>"
  * 
  *         This file is part of jIPtables.
  *         jIPtables is free software: you can redistribute it
