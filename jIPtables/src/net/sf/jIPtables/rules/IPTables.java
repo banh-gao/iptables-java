@@ -43,16 +43,18 @@ public class IPTables {
 	 * The command to execute iptables
 	 */
 	private final static String IPTABLES_COMMAND = "sudo /sbin/iptables";
+
 	/**
-	 * The command to execute for retrieve the system iptables configuration,
+	 * The command to retrieve the system iptables configuration,
 	 * the configuration will be read from the standard output
 	 */
-	private final static String SAVE_COMMAND = "sudo /sbin/iptables-save";
+	private final static String EXPORT_COMMAND = "sudo /sbin/iptables-save";
+
 	/**
-	 * The command to execute to save the system iptables configuration, the
+	 * The command to save the system iptables configuration, the
 	 * configuration will be written on the standard input
 	 */
-	private final static String RESTORE_COMMAND = "sudo /sbin/iptables-restore";
+	private final static String IMPORT_COMMAND = "sudo /sbin/iptables-restore";
 
 	/**
 	 * @return The RuleSet that represent the current system configuration
@@ -62,7 +64,7 @@ public class IPTables {
 	 *             insufficient privileges or unsupported iptables version
 	 */
 	public static RuleSet getCurrentRules() throws IOException {
-		Process p = Runtime.getRuntime().exec(IPTables.SAVE_COMMAND + " -c");
+		Process p = Runtime.getRuntime().exec(IPTables.EXPORT_COMMAND + " -c");
 		readError(p.getErrorStream());
 		try {
 			return RuleSet.parse(p.getInputStream());
@@ -80,10 +82,10 @@ public class IPTables {
 	 * @throws NullPointerException
 	 *             If the passed ruleset is null
 	 */
-	public static void setRules(RuleSet set) throws IOException {
+	public static void applyRules(RuleSet set) throws IOException {
 		if (set == null)
 			throw new NullPointerException();
-		Process p = Runtime.getRuntime().exec(IPTables.RESTORE_COMMAND);
+		Process p = Runtime.getRuntime().exec(IPTables.IMPORT_COMMAND);
 		OutputStream o = p.getOutputStream();
 		o.write(set.getExportRules().getBytes());
 		o.close();
@@ -122,16 +124,11 @@ public class IPTables {
 		if (table == null)
 			table = TableType.FILTER;
 
-		String counter = "";
-		if (rule.getPacketsNum() > 0 || rule.getBytesNum() > 0) {
-			long packets = rule.getPacketsNum();
-			rule.setPacketsNum(0);
-			long bytes = rule.getBytesNum();
-			rule.setBytesNum(0);
-			counter = " -c " + packets + " " + bytes;
-		}
+		runIPTablesCommand("-t " + table.getName() + " -I " + rule.getChainName() + " " + " " + ruleNum + rule.getCommand());
+	}
 
-		Process p = Runtime.getRuntime().exec(IPTables.IPTABLES_COMMAND + " -t " + table.getName() + " -I " + rule.getChainName() + " " + " " + ruleNum + rule.getCommand() + counter);
+	private static void runIPTablesCommand(String options) throws IOException {
+		Process p = Runtime.getRuntime().exec(IPTables.IPTABLES_COMMAND + ' ' + options);
 		readError(p.getErrorStream());
 	}
 
@@ -174,8 +171,7 @@ public class IPTables {
 			counter = " -c " + packets + " " + bytes;
 		}
 
-		Process p = Runtime.getRuntime().exec(IPTables.IPTABLES_COMMAND + " -t " + table.getName() + " -R " + newRule.getChainName() + " " + ruleNum + " " + newRule.getCommand() + counter);
-		readError(p.getErrorStream());
+		runIPTablesCommand("-t " + table.getName() + " -R " + newRule.getChainName() + " " + ruleNum + " " + newRule.getCommand() + counter);
 	}
 
 	/**
@@ -213,8 +209,7 @@ public class IPTables {
 			counter = " -c " + packets + " " + bytes;
 		}
 
-		Process p = Runtime.getRuntime().exec(IPTables.IPTABLES_COMMAND + " -t " + table.getName() + " -A " + rule.getChainName() + " " + rule.getCommand() + counter);
-		readError(p.getErrorStream());
+		runIPTablesCommand("-t " + table.getName() + " -A " + rule.getChainName() + " " + rule.getCommand() + counter);
 	}
 
 	/**
@@ -243,8 +238,7 @@ public class IPTables {
 		if (table == null)
 			table = TableType.FILTER;
 
-		Process p = Runtime.getRuntime().exec(IPTables.IPTABLES_COMMAND + " -t " + table.getName() + " -D " + rule.getChainName() + " " + rule.getCommand());
-		readError(p.getErrorStream());
+		runIPTablesCommand("-t " + table.getName() + " -D " + rule.getChainName() + " " + rule.getCommand());
 	}
 
 	/**
@@ -252,16 +246,16 @@ public class IPTables {
 	 * 
 	 * @param ruleNum
 	 *            The 1-indexed position where the rule to delete is
-	 * @param chain
-	 *            The chain where the rule to delete is
 	 * @param table
 	 *            The table where the rule to delete is, if null the default
 	 *            table is FILTER
+	 * @param chain
+	 *            The chain where the rule to delete is
 	 * @throws IOException
 	 *             If the operation cannot be completed, for example for
 	 *             insufficient privileges or unsupported iptables version
 	 */
-	public static void deleteRule(int ruleNum, String chain, TableType table) throws IOException {
+	public static void deleteRule(int ruleNum, TableType table, String chain) throws IOException {
 		if (ruleNum < 1)
 			throw new IllegalArgumentException("The rule number cannot be less than 1, " + ruleNum + " given");
 
@@ -270,8 +264,7 @@ public class IPTables {
 
 		if (table == null)
 			table = TableType.FILTER;
-		Process p = Runtime.getRuntime().exec(IPTables.IPTABLES_COMMAND + " -t " + table.getName() + " -D " + chain + " " + ruleNum);
-		readError(p.getErrorStream());
+		runIPTablesCommand("-t " + table.getName() + " -D " + chain + " " + ruleNum);
 	}
 
 	/**

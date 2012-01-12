@@ -76,16 +76,7 @@ public class Rule extends Command implements Cloneable {
 		Matcher cm = Rule.counterPatten.matcher(ruleCommand);
 
 		Rule rule = new Rule();
-
-		// Search for counters
-		if (cm.find()) {
-			rule.setPacketsNum(Long.parseLong(cm.group(1)));
-			rule.setBytesNum(Long.parseLong(cm.group(2)));
-			// Remove counters from command
-			ruleCommand = ruleCommand.substring(cm.group(0).length());
-		}
-
-		rule.initRule(rule, ruleCommand);
+		rule.initRule(ruleCommand);
 
 		return rule;
 	}
@@ -94,36 +85,41 @@ public class Rule extends Command implements Cloneable {
 	 * Initialize the passed rule with the string command
 	 * 
 	 * @throws IllegalArgumentException
-	 *             If the passed rule is null or is empty
-	 * @throws NullPointerException
-	 *             If the passed rule is null
+	 *             If the passed ruleCommand is invalid
 	 */
-	private void initRule(Rule rule, String ruleCommand) {
-
-		if (rule == null)
-			throw new NullPointerException();
-
+	private void initRule(String ruleCommand) {
 		if (ruleCommand == null || ruleCommand.isEmpty())
 			throw new IllegalArgumentException("Invalid rule command");
 
-		Matcher m = Rule.argumentPattern.matcher(ruleCommand);
+		parseArguments(ruleCommand);
+		parseDataCounters(ruleCommand);
+	}
 
-		while (m.find())
-			if (m.groupCount() == 5) {
-				boolean isNegated = (m.group(1) != null && !m.group(1).isEmpty());
+	private void parseArguments(String ruleCommand) {
+		Matcher argumentMatcher = argumentPattern.matcher(ruleCommand);
 
-				String optionName = m.group(2).trim();
-				String value = m.group(4).trim();
+		while (argumentMatcher.find()) {
+			String argumentName = argumentMatcher.group(2).trim();
+			String argumentValue = argumentMatcher.group(4).trim();
+			boolean isNegated = (argumentMatcher.group(1) != null && !argumentMatcher.group(1).isEmpty());
 
-				// Set the chain name and don't store as an option
-				if ("-A".equals(optionName) || "--append".equals(optionName)) {
-					chainName = value;
-					continue;
-				}
+			if (isChainNameArgument(argumentName))
+				chainName = argumentValue;
+			else
+				setOption(argumentName, argumentValue, isNegated);
+		}
+	}
 
-				rule.setOption(optionName, value);
-				rule.setNegated(optionName, isNegated);
-			}
+	private boolean isChainNameArgument(String argumentName) {
+		return "-A".equals(argumentName) || "--append".equals(argumentName);
+	}
+
+	private void parseDataCounters(String ruleCommand) {
+		Matcher counterMatcher = counterPatten.matcher(ruleCommand);
+		if (counterMatcher.find()) {
+			setPacketsNum(Long.parseLong(counterMatcher.group(1)));
+			setBytesNum(Long.parseLong(counterMatcher.group(2)));
+		}
 	}
 
 	/**
@@ -181,6 +177,18 @@ public class Rule extends Command implements Cloneable {
 	 */
 	public long getBytesNum() {
 		return bytes;
+	}
+
+	@Override
+	public String getCommand() {
+		return super.getCommand() + getDataCounter();
+	}
+
+	private String getDataCounter() {
+		if (getPacketsNum() > 0 || getBytesNum() > 0)
+			return " -c " + getPacketsNum() + " " + getBytesNum();
+		else
+			return "";
 	}
 
 	/**

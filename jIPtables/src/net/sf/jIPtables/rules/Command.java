@@ -52,11 +52,13 @@ public abstract class Command {
 	 */
 	public String getCommand() {
 		StringBuilder out = new StringBuilder();
-		for (Entry<String, String> e : options.entrySet()) {
-			String o = e.getKey();
-			out.append(neg(o));
-			out.append(' ' + o);
-			out.append(' ' + e.getValue());
+		for (Entry<String, String> entry : options.entrySet()) {
+			String option = entry.getKey();
+			out.append(negOp(option));
+			out.append(' ');
+			out.append(option);
+			out.append(' ');
+			out.append(entry.getValue());
 		}
 		return out.toString();
 	}
@@ -64,6 +66,10 @@ public abstract class Command {
 	/**
 	 * Set and option and return the old value
 	 * 
+	 * @param option
+	 *            The option name
+	 * @param value
+	 *            The option value
 	 * @return The old value
 	 * @throws NullPointerException
 	 *             If the passed option or value is null
@@ -76,6 +82,24 @@ public abstract class Command {
 			return "";
 		else
 			return old;
+	}
+
+	/**
+	 * Set and option and his negation status, return the old value
+	 * 
+	 * @param option
+	 *            The option name
+	 * @param value
+	 *            The option value
+	 * @param isNegated
+	 *            The negation status, true means the option is negated
+	 * @return The old value
+	 * @throws NullPointerException
+	 *             If the passed option or value is null
+	 */
+	public String setOption(String option, String value,boolean isNegated) {
+		setNegated(option, isNegated);
+		return setOption(option, value);
 	}
 
 	/**
@@ -179,7 +203,7 @@ public abstract class Command {
 	 * @throws NullPointerException
 	 *             If the passed option is null
 	 */
-	protected String neg(String option) {
+	protected String negOp(String option) {
 		if (option == null)
 			throw new NullPointerException();
 		return isNegated(option) ? " !" : "";

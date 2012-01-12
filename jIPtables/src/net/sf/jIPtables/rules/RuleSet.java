@@ -129,41 +129,50 @@ public class RuleSet implements Iterable<Table> {
 	public static RuleSet parse(String rules) throws ParsingException {
 		if (rules == null)
 			throw new NullPointerException();
+
 		RuleSet parsedRules = new RuleSet();
 		BufferedReader r = new BufferedReader(new StringReader(rules));
+		Table currentTable = parsedRules.filterTable;
+
+		int lineNum = 1;
+		String line;
 		try {
-			Table currentTable = parsedRules.filterTable;
-			int lineNum = 1;
-			for (String line = r.readLine(); line != null; line = r.readLine(), lineNum++) {
+			while ((line = r.readLine()) != null) {
 				line = line.trim();
-				if (line.charAt(0) == '#')
-					continue;
-				else if (line.charAt(0) == '*') {
-					if ("filter".equals(line.substring(1))) {
-						currentTable = parsedRules.filterTable;
-						continue;
-					} else if ("nat".equals(line.substring(1))) {
-						currentTable = parsedRules.natTable;
-						continue;
-					} else if ("mangle".equals(line.substring(1))) {
-						currentTable = parsedRules.mangleTable;
-						continue;
-					} else if ("raw".equals(line.substring(1))) {
-						currentTable = parsedRules.rawTable;
-						continue;
-					} else
-						throw new ParsingException(lineNum, "Invalid table name " + line.substring(1));
-				} else
-					try {
-						parseLine(line, currentTable);
-					} catch (ParsingException e) {
-						throw new ParsingException(lineNum, e.getParsingMessage());
-					}
+				if (isTableLine(line))
+					currentTable = getCurrentTable(parsedRules, line);
+				else if (!isCommentLine(line))
+					parseLine(line, currentTable);
+				lineNum++;
 			}
-			return parsedRules;
+		} catch (ParsingException e) {
+			throw new ParsingException(lineNum, e.getParsingMessage());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+		return parsedRules;
+
+	}
+
+	private static boolean isCommentLine(String line) {
+		return line.charAt(0) == '#';
+	}
+
+	private static boolean isTableLine(String line) {
+		return line.charAt(0) == '*';
+	}
+
+	private static Table getCurrentTable(RuleSet ruleSet, String tableLine) throws ParsingException {
+		if ("filter".equals(tableLine.substring(1)))
+			return ruleSet.filterTable;
+		else if ("nat".equals(tableLine.substring(1)))
+			return ruleSet.natTable;
+		else if ("mangle".equals(tableLine.substring(1)))
+			return ruleSet.mangleTable;
+		else if ("raw".equals(tableLine.substring(1)))
+			return ruleSet.rawTable;
+		else
+			throw new ParsingException("Invalid table name " + tableLine.substring(1));
 	}
 
 	/**
