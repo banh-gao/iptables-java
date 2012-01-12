@@ -24,11 +24,10 @@
 
 package net.sf.jIPtables.rules;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +35,7 @@ import java.util.regex.Pattern;
  * An iptables chain that contains the corresponding rules
  * 
  */
-public class Chain extends Command implements Iterable<Rule>, Cloneable {
+public class Chain extends Command implements Cloneable, List<Rule> {
 
 	protected static final Pattern chainPattern = Pattern.compile(":[\\s]*([^ ]*)[\\s]*([^ ]*)]*[\\s]*(\\[(\\d*):(\\d*)\\])*");
 
@@ -51,7 +50,7 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	private long bytesNum;
 	private Policy defaultPolicy = PREDEFINED_POLICY;
 
-	private final List<Rule> rules = new LinkedList<Rule>();
+	private final List<Rule> rules;
 
 	/**
 	 * Create a chain with the specified name
@@ -63,6 +62,7 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 		if (name == null)
 			throw new IllegalArgumentException("Invalid chain name");
 		this.chainName = name;
+		rules = new RulesList(name);
 	}
 
 	/**
@@ -78,9 +78,9 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 			throw new NullPointerException();
 
 		System.out.println(chain);
-		
+
 		Matcher chainMatcher = chainPattern.matcher(chain);
-		
+
 		if (!chainMatcher.find())
 			throw new ParsingException("Invalid chain format");
 
@@ -114,46 +114,18 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 		return Long.parseLong(chainMatcher.group(5));
 	}
 
-	@Override
-	public String getCommand() {
-		StringBuilder outCommand = new StringBuilder(":" + chainName + " " + defaultPolicy);
-
-		appendDataCounters(outCommand, packetsNum, bytesNum);
-		outCommand.append('\n');
-
-		for (Rule rule : rules) {
-			appendDataCounters(outCommand, rule.getPacketsNum(), rule.getBytesNum());
-			outCommand.append("-A " + chainName + rule.getCommand() + "\n");
-		}
-		return outCommand.toString();
-	}
-
-	private void appendDataCounters(StringBuilder outCommand, long packetsNum, long bytesNum) {
-		if (packetsNum > -1 && bytesNum > -1)
-			outCommand.append(" [" + packetsNum + ":" + bytesNum + "]");
-	}
-
 	/**
-	 * Add the specified rule to the chain, the rules are applied in the order
-	 * they are inserted
+	 * Set the default policy of the chain
 	 * 
+	 * @param defaultPolicy
+	 *            The default policy
 	 * @throws NullPointerException
-	 *             If the passed rule is null
+	 *             If the passed policy is null
 	 */
-	public void addRule(Rule rule) {
-		if (rule == null)
+	public void setDefaultPolicy(Policy defaultPolicy) {
+		if (defaultPolicy == null)
 			throw new NullPointerException();
-		rules.add(rule);
-		rule.chainName = chainName;
-		rule.ruleNumber = rules.size();
-	}
-
-	/**
-	 * @return A list of the rules in this chain, the list is sorted in the
-	 *         order of insertion
-	 */
-	public List<Rule> getRules() {
-		return new ArrayList<Rule>(rules);
+		this.defaultPolicy = defaultPolicy;
 	}
 
 	/**
@@ -202,20 +174,6 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	}
 
 	/**
-	 * Set the default policy of the chain
-	 * 
-	 * @param defaultPolicy
-	 *            The default policy
-	 * @throws NullPointerException
-	 *             If the passed policy is null
-	 */
-	public void setDefaultPolicy(Policy defaultPolicy) {
-		if (defaultPolicy == null)
-			throw new NullPointerException();
-		this.defaultPolicy = defaultPolicy;
-	}
-
-	/**
 	 * @return The default policy of the chain
 	 */
 	public Policy getDefaultPolicy() {
@@ -223,14 +181,32 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 	}
 
 	@Override
+	public String getCommand() {
+		StringBuilder outCommand = new StringBuilder(":" + chainName + " " + defaultPolicy);
+
+		appendDataCounters(outCommand, packetsNum, bytesNum);
+		outCommand.append('\n');
+
+		for (Rule rule : rules) {
+			appendDataCounters(outCommand, rule.getPacketsNum(), rule.getBytesNum());
+			outCommand.append("-A " + chainName + rule.getCommand() + "\n");
+		}
+		return outCommand.toString();
+	}
+
+	private void appendDataCounters(StringBuilder outCommand, long packetsNum, long bytesNum) {
+		if (packetsNum > -1 && bytesNum > -1)
+			outCommand.append(" [" + packetsNum + ":" + bytesNum + "]");
+	}
+
+	@Override
 	public Chain clone() {
 		try {
 			Chain c = parse(getCommand());
 			for (Rule r : rules)
-				c.addRule(r.clone());
+				c.add(r.clone());
 			return c;
 		} catch (ParsingException e) {
-			// This should never happen
 			throw new RuntimeException(e);
 		}
 	}
@@ -271,8 +247,99 @@ public class Chain extends Command implements Iterable<Rule>, Cloneable {
 		return out.toString();
 	}
 
-	@Override
+	public void add(int index, Rule element) {
+		rules.add(index, element);
+	}
+
+	public boolean add(Rule e) {
+		return rules.add(e);
+	}
+
+	public boolean addAll(Collection<? extends Rule> c) {
+		return rules.addAll(c);
+	}
+
+	public boolean addAll(int index, Collection<? extends Rule> c) {
+		return rules.addAll(index, c);
+	}
+
+	public void clear() {
+		rules.clear();
+	}
+
+	public boolean contains(Object o) {
+		return rules.contains(o);
+	}
+
+	public boolean containsAll(Collection<?> c) {
+		return rules.containsAll(c);
+	}
+
+	public Rule get(int index) {
+		return rules.get(index);
+	}
+
+	public int hashCode() {
+		return rules.hashCode();
+	}
+
+	public int indexOf(Object o) {
+		return rules.indexOf(o);
+	}
+
+	public boolean isEmpty() {
+		return rules.isEmpty();
+	}
+
 	public Iterator<Rule> iterator() {
 		return rules.iterator();
+	}
+
+	public int lastIndexOf(Object o) {
+		return rules.lastIndexOf(o);
+	}
+
+	public ListIterator<Rule> listIterator() {
+		return rules.listIterator();
+	}
+
+	public ListIterator<Rule> listIterator(int index) {
+		return rules.listIterator(index);
+	}
+
+	public Rule remove(int index) {
+		return rules.remove(index);
+	}
+
+	public boolean remove(Object o) {
+		return rules.remove(o);
+	}
+
+	public boolean removeAll(Collection<?> c) {
+		return rules.removeAll(c);
+	}
+
+	public boolean retainAll(Collection<?> c) {
+		return rules.retainAll(c);
+	}
+
+	public Rule set(int index, Rule element) {
+		return rules.set(index, element);
+	}
+
+	public int size() {
+		return rules.size();
+	}
+
+	public List<Rule> subList(int fromIndex, int toIndex) {
+		return rules.subList(fromIndex, toIndex);
+	}
+
+	public Object[] toArray() {
+		return rules.toArray();
+	}
+
+	public <T> T[] toArray(T[] a) {
+		return rules.toArray(a);
 	}
 }

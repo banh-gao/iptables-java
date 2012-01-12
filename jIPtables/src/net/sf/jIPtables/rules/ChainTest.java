@@ -47,18 +47,18 @@ public class ChainTest {
 	public void testAddRule() {
 		Chain c = buildTestChain("test");
 		Rule r = Rule.buildFromCommand("-A test -m state -j ACCEPT --state RELATED,ESTABLISHED");
-		c.addRule(r);
-		assertTrue(c.getRules().contains(r));
+		c.add(r);
+		assertTrue(c.contains(r));
 	}
 
 	@Test
 	public void testGetRules() {
 		Chain c = buildTestChain("test");
 		Rule r = Rule.buildFromCommand("-A test -m state -j ACCEPT --state RELATED,ESTABLISHED");
-		c.addRule(r);
-		assertTrue(c.getRules().contains(r));
-		c.getRules().remove(r);
-		assertTrue(c.getRules().contains(r));
+		c.add(r);
+		assertTrue(c.contains(r));
+		c.remove(r);
+		assertFalse(c.contains(r));
 	}
 
 	@Test
@@ -113,7 +113,7 @@ public class ChainTest {
 	public void testIterator() {
 		Chain c = buildTestChain("test");
 		Rule r = Rule.buildFromCommand("-A test -m state -j ACCEPT --state RELATED,ESTABLISHED");
-		c.addRule(r);
+		c.add(r);
 		Iterator<Rule> i = c.iterator();
 		assertEquals(r, i.next());
 	}

@@ -43,11 +43,7 @@ public class Rule extends Command implements Cloneable {
 	 * The chainName field can be written only by the rule itself and by other
 	 * classes in the same package
 	 */
-	protected String chainName = "";
-	/**
-	 * The rule number inside a chain
-	 */
-	protected int ruleNumber = 1;
+	protected String chainname = "";
 	/**
 	 * The number of packets
 	 */
@@ -73,11 +69,8 @@ public class Rule extends Command implements Cloneable {
 		if (ruleCommand == null || ruleCommand.isEmpty())
 			throw new IllegalArgumentException("Invalid rule command");
 
-		Matcher cm = Rule.counterPatten.matcher(ruleCommand);
-
 		Rule rule = new Rule();
 		rule.initRule(ruleCommand);
-
 		return rule;
 	}
 
@@ -104,7 +97,7 @@ public class Rule extends Command implements Cloneable {
 			boolean isNegated = (argumentMatcher.group(1) != null && !argumentMatcher.group(1).isEmpty());
 
 			if (isChainNameArgument(argumentName))
-				chainName = argumentValue;
+				chainname = argumentValue;
 			else
 				setOption(argumentName, argumentValue, isNegated);
 		}
@@ -126,18 +119,7 @@ public class Rule extends Command implements Cloneable {
 	 * @return The name of the associated chain
 	 */
 	public String getChainName() {
-		return chainName;
-	}
-
-	/**
-	 * @return The 1-indexed number of the rule inside a chain
-	 * @throws IllegalStateException
-	 *             If the rule is not associated with a chain
-	 */
-	public int getRuleNumber() {
-		if (chainName.isEmpty())
-			throw new IllegalStateException("Invalid rule number, the rule is not associated with a chain");
-		return ruleNumber;
+		return chainname;
 	}
 
 	/**

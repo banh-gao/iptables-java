@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import net.sf.jIPtables.rules.RuleSet.TableType;
+import net.sf.jIPtables.rules.Tables.TableType;
 
 /**
  * Interact directly with the system iptables application. To execute correctly
@@ -63,11 +63,11 @@ public class IPTables {
 	 *             If the operation cannot be completed, for example for
 	 *             insufficient privileges or unsupported iptables version
 	 */
-	public static RuleSet getCurrentRules() throws IOException {
+	public static Tables getCurrentRules() throws IOException {
 		Process p = Runtime.getRuntime().exec(IPTables.EXPORT_COMMAND + " -c");
 		readError(p.getErrorStream());
 		try {
-			return RuleSet.parse(p.getInputStream());
+			return Tables.parse(p.getInputStream());
 		} catch (ParsingException e) {
 			throw new IOException("Invalid iptables format. " + e.getParsingMessage());
 		}
@@ -82,7 +82,7 @@ public class IPTables {
 	 * @throws NullPointerException
 	 *             If the passed ruleset is null
 	 */
-	public static void applyRules(RuleSet set) throws IOException {
+	public static void applyRules(Tables set) throws IOException {
 		if (set == null)
 			throw new NullPointerException();
 		Process p = Runtime.getRuntime().exec(IPTables.IMPORT_COMMAND);

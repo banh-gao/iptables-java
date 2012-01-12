@@ -36,7 +36,7 @@ import java.util.Iterator;
  * Contains the configuration tables used by iptables
  * 
  */
-public class RuleSet implements Iterable<Table> {
+public class Tables implements Iterable<Table> {
 
 	private final Table filterTable;
 	private final Table natTable;
@@ -88,7 +88,7 @@ public class RuleSet implements Iterable<Table> {
 	/**
 	 * Create an empty RuleSet
 	 */
-	public RuleSet() {
+	public Tables() {
 		filterTable = new Table("filter");
 		natTable = new Table("nat");
 		mangleTable = new Table("mangle");
@@ -106,14 +106,14 @@ public class RuleSet implements Iterable<Table> {
 	 * @throws NullPointerException
 	 *             If the passed stream is null
 	 */
-	public static RuleSet parse(InputStream ruleStream) throws ParsingException, IOException {
+	public static Tables parse(InputStream ruleStream) throws ParsingException, IOException {
 		if (ruleStream == null)
 			throw new NullPointerException();
 		BufferedReader b = new BufferedReader(new InputStreamReader(ruleStream));
 		StringBuilder s = new StringBuilder();
 		for (String line = b.readLine(); line != null; line = b.readLine())
 			s.append(line + "\n");
-		return RuleSet.parse(s.toString());
+		return Tables.parse(s.toString());
 	}
 
 	/**
@@ -126,11 +126,11 @@ public class RuleSet implements Iterable<Table> {
 	 * @throws NullPointerException
 	 *             If the passed rules is null
 	 */
-	public static RuleSet parse(String rules) throws ParsingException {
+	public static Tables parse(String rules) throws ParsingException {
 		if (rules == null)
 			throw new NullPointerException();
 
-		RuleSet parsedRules = new RuleSet();
+		Tables parsedRules = new Tables();
 		BufferedReader r = new BufferedReader(new StringReader(rules));
 		Table currentTable = parsedRules.filterTable;
 
@@ -162,7 +162,7 @@ public class RuleSet implements Iterable<Table> {
 		return line.charAt(0) == '*';
 	}
 
-	private static Table getCurrentTable(RuleSet ruleSet, String tableLine) throws ParsingException {
+	private static Table getCurrentTable(Tables ruleSet, String tableLine) throws ParsingException {
 		if ("filter".equals(tableLine.substring(1)))
 			return ruleSet.filterTable;
 		else if ("nat".equals(tableLine.substring(1)))
@@ -250,7 +250,7 @@ public class RuleSet implements Iterable<Table> {
 		if (c == null)
 			throw new ParsingException("Undefined chain " + chainName);
 
-		c.addRule(r);
+		c.add(r);
 	}
 
 	@Override

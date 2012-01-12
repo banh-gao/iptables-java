@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import net.sf.jIPtables.rules.Chain.Policy;
-import net.sf.jIPtables.rules.RuleSet.TableType;
+import net.sf.jIPtables.rules.Tables.TableType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -45,7 +45,7 @@ public class XMLRules {
 	 * @throws NullPointerException
 	 *             If the passed ruleset is null
 	 */
-	public static Document getXml(RuleSet rules) {
+	public static Document getXml(Tables rules) {
 		try {
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 
@@ -69,14 +69,14 @@ public class XMLRules {
 	 * @throws NullPointerException
 	 *             If the passed document is null
 	 */
-	public static RuleSet parseXml(Document doc) throws ParsingException {
+	public static Tables parseXml(Document doc) throws ParsingException {
 		if (doc == null)
 			throw new NullPointerException();
 		Element root = doc.getDocumentElement();
 		if (!"ruleset".equals(root.getNodeName()))
 			throw new ParsingException("Invalid ruleset, the document element should be a ruleset tag");
 
-		RuleSet ruleset = new RuleSet();
+		Tables ruleset = new Tables();
 
 		NodeList tables = root.getChildNodes();
 		for (int i = 0; i < tables.getLength(); i++) {
@@ -108,7 +108,7 @@ public class XMLRules {
 		chainTag.setAttribute("packets", Long.toString(chain.getPacketsNum()));
 		chainTag.setAttribute("bytes", Long.toString(chain.getBytesNum()));
 
-		for (Rule r : chain.getRules())
+		for (Rule r : chain)
 			chainTag.appendChild(xmlRule(r, doc));
 
 		return chainTag;
@@ -134,7 +134,7 @@ public class XMLRules {
 		return option;
 	}
 
-	private static void parseTable(Element tableElement, RuleSet ruleset) throws ParsingException {
+	private static void parseTable(Element tableElement, Tables ruleset) throws ParsingException {
 		try {
 			TableType type = TableType.getType(tableElement.getAttribute("name"));
 
@@ -148,72 +148,85 @@ public class XMLRules {
 				Element cElem = (Element) chains.item(i);
 
 				if ("chain".equals(cElem.getNodeName()))
-					table.addChain(parseChain(cElem));
+					table.addChain(buildChain(cElem));
 			}
 		} catch (IllegalArgumentException _) {
 			throw new ParsingException("Invalid table type " + tableElement.getAttribute("name"));
 		}
 	}
 
-	private static Chain parseChain(Element chainElement) throws ParsingException {
-		String chainName = chainElement.getAttribute("name");
-		if (chainName.isEmpty())
-			throw new ParsingException("Invalid chain name " + chainName);
-
-		Chain chain = new Chain(chainName);
-		try {
-			long packets = Long.parseLong(chainElement.getAttribute("packets"));
-			if (packets < 0)
-				throw new NumberFormatException();
-			chain.setPacketsNum(packets);
-		} catch (NumberFormatException _) {
-			throw new ParsingException("Invalid packets number " + chainElement.getAttribute("packets"));
-		}
-		try {
-			long bytes = Long.parseLong(chainElement.getAttribute("bytes"));
-			if (bytes < 0)
-				throw new NumberFormatException();
-			chain.setBytesNum(bytes);
-		} catch (NumberFormatException _) {
-			throw new ParsingException("Invalid bytes number " + chainElement.getAttribute("bytes"));
-		}
-		try {
-			chain.setDefaultPolicy(Policy.valueOf(chainElement.getAttribute("policy")));
-		} catch (IllegalArgumentException _) {
-			throw new ParsingException("Invalid policy " + chainElement.getAttribute("policy"));
-		}
+	private static Chain buildChain(Element chainElement) throws ParsingException {
+		Chain chain = ChainParser.parseChain(chainElement);
 
 		NodeList rules = chainElement.getChildNodes();
 		for (int i = 0; i < rules.getLength(); i++) {
-			if (!(rules.item(i) instanceof Element))
-				continue;
-
-			Element rElem = (Element) rules.item(i);
-
-			if ("rule".equals(rElem.getNodeName()))
-				chain.addRule(parseRule(rElem));
+			if ((rules.item(i) instanceof Element)) {
+				Element rElem = (Element) rules.item(i);
+				if ("rule".equals(rElem.getNodeName()))
+					chain.add(RuleParser.parseRule(rElem));
+			}
 		}
 		return chain;
 	}
 
-	private static Rule parseRule(Element ruleElement) throws ParsingException {
-		Rule rule = new Rule();
+}
+
+class ChainParser {
+
+	public static Chain parseChain(Element chainElement) throws ParsingException {
+		Chain chain = new Chain(parseName(chainElement));
+
+		chain.setPacketsNum(parsePacketsNum(chainElement));
+		chain.setPacketsNum(parseBytesNum(chainElement));
+		chain.setDefaultPolicy(parsePolicy(chainElement));
+		return chain;
+	}
+
+	private static String parseName(Element chainElement) throws ParsingException {
+		String chainName = chainElement.getAttribute("name");
+		if (chainName.isEmpty())
+			throw new ParsingException("Invalid chain name " + chainName);
+		return chainName;
+	}
+
+	private static long parsePacketsNum(Element chainElement) throws ParsingException {
 		try {
-			long packets = Long.parseLong(ruleElement.getAttribute("packets"));
+			long packets = Long.parseLong(chainElement.getAttribute("packets"));
 			if (packets < 0)
 				throw new NumberFormatException();
-			rule.setPacketsNum(packets);
+			return packets;
 		} catch (NumberFormatException _) {
-			throw new ParsingException("Invalid packets number " + ruleElement.getAttribute("packets"));
+			throw new ParsingException("Invalid packets number " + chainElement.getAttribute("packets"));
 		}
+	}
+
+	private static long parseBytesNum(Element chainElement) throws ParsingException {
 		try {
-			long bytes = Long.parseLong(ruleElement.getAttribute("bytes"));
+			long bytes = Long.parseLong(chainElement.getAttribute("bytes"));
 			if (bytes < 0)
 				throw new NumberFormatException();
-			rule.setBytesNum(bytes);
+			return bytes;
 		} catch (NumberFormatException _) {
-			throw new ParsingException("Invalid bytes number " + ruleElement.getAttribute("bytes"));
+			throw new ParsingException("Invalid bytes number " + chainElement.getAttribute("bytes"));
 		}
+	}
+
+	private static Policy parsePolicy(Element chainElement) throws ParsingException {
+		try {
+			return Policy.valueOf(chainElement.getAttribute("policy"));
+		} catch (IllegalArgumentException _) {
+			throw new ParsingException("Invalid policy " + chainElement.getAttribute("policy"));
+		}
+	}
+}
+
+class RuleParser {
+
+	public static Rule parseRule(Element ruleElement) throws ParsingException {
+		Rule rule = new Rule();
+
+		rule.setPacketsNum(parsePacketsNum(ruleElement));
+		rule.setBytesNum(parseBytesNum(ruleElement));
 
 		NodeList options = ruleElement.getChildNodes();
 		for (int i = 0; i < options.getLength(); i++) {
@@ -228,13 +241,36 @@ public class XMLRules {
 		return rule;
 	}
 
+	private static long parsePacketsNum(Element ruleElement) throws ParsingException {
+		try {
+			long packets = Long.parseLong(ruleElement.getAttribute("packets"));
+			if (packets < 0)
+				throw new NumberFormatException();
+			return packets;
+		} catch (NumberFormatException _) {
+			throw new ParsingException("Invalid packets number " + ruleElement.getAttribute("packets"));
+		}
+	}
+
+	private static long parseBytesNum(Element ruleElement) throws ParsingException {
+		try {
+			long bytes = Long.parseLong(ruleElement.getAttribute("bytes"));
+			if (bytes < 0)
+				throw new NumberFormatException();
+			return bytes;
+		} catch (NumberFormatException _) {
+			throw new ParsingException("Invalid bytes number " + ruleElement.getAttribute("bytes"));
+		}
+	}
+
 	private static void parseOption(Rule rule, Element optionElement) throws ParsingException {
 		String name = optionElement.getAttribute("name");
+
 		if (name.isEmpty())
 			throw new ParsingException("Invalid option name");
+
 		boolean isNegated = ("true".equals(optionElement.getAttribute("isNegated")));
 		String value = optionElement.getFirstChild().getNodeValue();
-		rule.setOption(name, value);
-		rule.setNegated(name, isNegated);
+		rule.setOption(name, value, isNegated);
 	}
 }
