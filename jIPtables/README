@@ -1,23 +1,38 @@
-JIPtables - Java api for linux firewall
+jIPtables - Java library for iptables
 by Daniel Zozin <zdenial@gmx.com>
 
-This API provide an iterface to the iptables firewall, to linux netfilter log and connection api
+This library provides a communication interface to the iptables firewall, to linux netfilter logger and connection tracker.
 
-The jIPtables rule management allow to parse, generate and apply the iptables rules from java.
-The log tracker notify the listeners for low level netfilter logs.
-The connection tracker notify the listeners for established connections and connection state changes.
-
+The jIPtables rule management system allows to parse, generate and apply the iptables rules to the local linux machine.
+The log tracker provides a java notification system for low level netfilter log events.
+The connection tracker notifies for established connections and connection state changes.
 
 INSTALLATION
-In order to compile jIPtables requires the libnetfilter_log and libnetfilter_conntrack.
+The full implementation of jIPtables requires libnetfilter_log and libnetfilter_conntrack in order to be compiled.
 You can download them at http://www.netfilter.org/
 
 On Debian or Ubuntu just run:
 sudo apt-get install libnetfilter-log-dev libnetfilter-conntrack-dev
 
-For the compilation go in the main directory and run ant and set the jnidir param to the directory path where your virtual machine jni header files are stored:
-
+The compilation is executed through an ant script, set the jnidir param to the directory path where your virtual machine jni header files are stored.
+If you want to use the full implementation, after installing the required libraries go into the main directory and type:
 ant build -Djnidir=VMHeadersDir
 
-The ant script will generate 3 files, the jar library and 2 .so shared libraries.
-The shared libraries should be in a system library directory or in the same directory of the jar.
+If you want only to use the netfilter event logger type:
+ant build-log -Djnidir=VMHeadersDir
+
+If you want only to use the netfilter connection tracker type:
+ant build-conn -Djnidir=VMHeadersDir
+
+The ant script will generate the compiled library files.
+
+USAGE
+To use the library you must include the jar archive in your project and place the compiled library files in a system library directory or in the working directory.
+The doc directory contains the library javadoc documentation.
+
+In order to access to the firewall and netfilter functionalities the library needs the CAP_NET_ADMIN capability.
+You can set that capability by adding to /etc/security/capability.conf a line like:
+
+cap_net_admin        YOUR-APP-USER
+
+replacing YOUR-APP-USER with the username that runs the application.

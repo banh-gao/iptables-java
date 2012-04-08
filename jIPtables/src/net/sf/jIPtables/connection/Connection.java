@@ -191,11 +191,6 @@ public class Connection {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		return this == obj;
-	}
-
-	@Override
 	public String toString() {
 		return "Connection [l3protocolNum=" + l3protocolNum + ", l4protocol=" + l4protocol + ", l4protocolNum=" + l4protocolNum + ", srcAddr=" + srcAddr + ", dstAddr=" + dstAddr + ", srcPort=" + srcPort + ", dstPort=" + dstPort + ", origBytes=" + origBytes + ", origPackets=" + origPackets + ", replyBytes=" + replyBytes + ", replyPackets=" + replyPackets + ", mark=" + mark + ", state=" + state + ", timeout=" + timeout + ", id=" + id + "]";
 	}

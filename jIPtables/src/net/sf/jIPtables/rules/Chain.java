@@ -24,6 +24,7 @@
 
 package net.sf.jIPtables.rules;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -62,7 +63,7 @@ public class Chain extends Command implements Cloneable, List<Rule> {
 		if (name == null)
 			throw new IllegalArgumentException("Invalid chain name");
 		this.chainName = name;
-		rules = new RulesList(name);
+		rules = new ArrayList();
 	}
 
 	/**

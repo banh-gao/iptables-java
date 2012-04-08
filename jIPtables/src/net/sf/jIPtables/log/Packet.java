@@ -114,8 +114,7 @@ public class Packet {
 		Matcher m = p.matcher(rawData);
 		if (m.find())
 			return m.group(1);
-		else
-			return "";
+		return "";
 	}
 
 	/**
@@ -132,8 +131,7 @@ public class Packet {
 				e.printStackTrace();
 				return 0;
 			}
-		else
-			return 0;
+		return 0;
 	}
 
 	/**
@@ -144,8 +142,7 @@ public class Packet {
 		Matcher m = p.matcher(rawData);
 		if (m.find())
 			return Long.parseLong(m.group(1));
-		else
-			return 0;
+		return 0;
 	}
 
 	/**

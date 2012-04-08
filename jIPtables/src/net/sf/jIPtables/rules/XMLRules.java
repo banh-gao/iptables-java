@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import net.sf.jIPtables.rules.Chain.Policy;
-import net.sf.jIPtables.rules.Tables.TableType;
+import net.sf.jIPtables.rules.RuleSet.TableType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -45,7 +45,7 @@ public class XMLRules {
 	 * @throws NullPointerException
 	 *             If the passed ruleset is null
 	 */
-	public static Document getXml(Tables rules) {
+	public static Document getXml(RuleSet rules) {
 		try {
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 
@@ -69,14 +69,14 @@ public class XMLRules {
 	 * @throws NullPointerException
 	 *             If the passed document is null
 	 */
-	public static Tables parseXml(Document doc) throws ParsingException {
+	public static RuleSet parseXml(Document doc) throws ParsingException {
 		if (doc == null)
 			throw new NullPointerException();
 		Element root = doc.getDocumentElement();
 		if (!"ruleset".equals(root.getNodeName()))
 			throw new ParsingException("Invalid ruleset, the document element should be a ruleset tag");
 
-		Tables ruleset = new Tables();
+		RuleSet ruleset = new RuleSet();
 
 		NodeList tables = root.getChildNodes();
 		for (int i = 0; i < tables.getLength(); i++) {
@@ -134,7 +134,7 @@ public class XMLRules {
 		return option;
 	}
 
-	private static void parseTable(Element tableElement, Tables ruleset) throws ParsingException {
+	private static void parseTable(Element tableElement, RuleSet ruleset) throws ParsingException {
 		try {
 			TableType type = TableType.getType(tableElement.getAttribute("name"));
 
