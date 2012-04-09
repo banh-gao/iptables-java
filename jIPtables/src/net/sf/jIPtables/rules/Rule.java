@@ -169,8 +169,7 @@ public class Rule extends Command implements Cloneable {
 	private String getDataCounter() {
 		if (getPacketsNum() > 0 || getBytesNum() > 0)
 			return " -c " + getPacketsNum() + " " + getBytesNum();
-		else
-			return "";
+		return "";
 	}
 
 	/**

@@ -401,7 +401,7 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	struct iphdr *iph = (struct iphdr *) pkt->payload;
 
-	void *nexthdr = (u_int32_t *) iph + iph->ihl;
+	void *transportHdr = (u_int32_t *) iph + iph->ihl;
 
 	if (len < sizeof(struct iphdr) || len <= (u_int32_t)(iph->ihl * 4))
 		return;
@@ -466,19 +466,19 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	switch (iph->protocol) {
 	case IPPROTO_TCP:
-		_interp_tcp(retPacket, nexthdr, len);
+		_interp_tcp(retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_UDP:
-		_interp_udp(retPacket, nexthdr, len);
+		_interp_udp(retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_ICMP:
-		_interp_icmp(retPacket, nexthdr, len);
+		_interp_icmp(retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_SCTP:
-		_interp_sctp(retPacket, nexthdr, len);
+		_interp_sctp(retPacket, transportHdr, len);
 		break;
 	}
 	return retPacket;
@@ -572,7 +572,7 @@ JNIEXPORT void JNICALL Java_net_sf_jIPtables_log_NetFilterLogTask_init(JNIEnv * 
 	if (!h) {
 		/* if some error occurrs, print it to stderr */
 		ipulog_perror(NULL);
-		exit(1);
+		return;
 	}
 
 	env = javaEnv;

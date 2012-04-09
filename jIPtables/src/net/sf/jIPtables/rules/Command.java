@@ -80,8 +80,7 @@ public abstract class Command {
 		String old = options.put(option, value);
 		if (old == null)
 			return "";
-		else
-			return old;
+		return old;
 	}
 
 	/**
@@ -115,8 +114,7 @@ public abstract class Command {
 		String old = options.remove(option);
 		if (old == null)
 			return "";
-		else
-			return old;
+		return old;
 	}
 
 	/**
@@ -145,8 +143,7 @@ public abstract class Command {
 		String o = options.get(option);
 		if (o == null)
 			return "";
-		else
-			return o;
+		return o;
 	}
 
 	/**

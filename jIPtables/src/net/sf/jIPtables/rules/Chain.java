@@ -44,7 +44,7 @@ public class Chain extends Command implements Cloneable, List<Rule> {
 
 	public enum Policy {
 		ACCEPT, DROP, REJECT
-	};
+	}
 
 	private final String chainName;
 	private long packetsNum;
@@ -63,7 +63,7 @@ public class Chain extends Command implements Cloneable, List<Rule> {
 		if (name == null)
 			throw new IllegalArgumentException("Invalid chain name");
 		this.chainName = name;
-		rules = new ArrayList();
+		rules = new ArrayList<Rule>();
 	}
 
 	/**

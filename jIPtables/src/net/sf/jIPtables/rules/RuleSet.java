@@ -64,7 +64,7 @@ public class RuleSet implements Iterable<Table> {
 					return "raw";
 			}
 			return "";
-		};
+		}
 
 		/**
 		 * Get the table type from string
@@ -83,7 +83,7 @@ public class RuleSet implements Iterable<Table> {
 			else
 				return null;
 		}
-	};
+	}
 
 	/**
 	 * Create an empty RuleSet

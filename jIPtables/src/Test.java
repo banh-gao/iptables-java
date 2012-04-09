@@ -31,8 +31,7 @@ import net.sf.jIPtables.log.Packet;
 public class Test {
 	public static void main(String[] args) {
 		LogTracker t = LogTracker.getInstance();
-		if(true)
-			return;
+		
 		t.addLogListener(new LogListener() {
 			
 			@Override
