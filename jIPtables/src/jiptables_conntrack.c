@@ -42,30 +42,21 @@ jmethodID updateNotificationMethod;
 jmethodID terminatedNotificationMethod;
 struct nfct_handle *h;
 
-const char * const proto2str[IPPROTO_MAX] = {
-		[IPPROTO_TCP] = "tcp",
-		[IPPROTO_UDP] = "udp",
-		[IPPROTO_UDPLITE] = "udplite",
-		[IPPROTO_ICMP ] = "icmp",
-		[IPPROTO_ICMPV6 ] = "icmpv6",
-		[IPPROTO_SCTP ] = "sctp",
-		[IPPROTO_GRE] = "gre",
-		[IPPROTO_DCCP] = "dccp", };
+const char * const proto2str[IPPROTO_MAX] = { [IPPROTO_TCP] = "tcp",
+		[IPPROTO_UDP] = "udp", [IPPROTO_UDPLITE] = "udplite", [IPPROTO_ICMP
+				] = "icmp", [IPPROTO_ICMPV6 ] = "icmpv6", [IPPROTO_SCTP
+				] = "sctp", [IPPROTO_GRE] = "gre", [IPPROTO_DCCP] = "dccp", };
 
 const char * const states[TCP_CONNTRACK_MAX] = {
-		[TCP_CONNTRACK_NONE ] = "NONE",
-		[TCP_CONNTRACK_SYN_SENT ] = "SYN_SENT",
-		[TCP_CONNTRACK_SYN_RECV ] = "SYN_RECV",
-		[TCP_CONNTRACK_ESTABLISHED ] = "ESTABLISHED",
-		[TCP_CONNTRACK_FIN_WAIT ] = "FIN_WAIT",
-		[TCP_CONNTRACK_CLOSE_WAIT ] = "CLOSE_WAIT",
-		[TCP_CONNTRACK_LAST_ACK ] = "LAST_ACK",
-		[TCP_CONNTRACK_TIME_WAIT ] = "TIME_WAIT",
+		[TCP_CONNTRACK_NONE ] = "NONE", [TCP_CONNTRACK_SYN_SENT ] = "SYN_SENT",
+		[TCP_CONNTRACK_SYN_RECV ] = "SYN_RECV", [TCP_CONNTRACK_ESTABLISHED
+				] = "ESTABLISHED", [TCP_CONNTRACK_FIN_WAIT ] = "FIN_WAIT",
+		[TCP_CONNTRACK_CLOSE_WAIT ] = "CLOSE_WAIT", [TCP_CONNTRACK_LAST_ACK
+				] = "LAST_ACK", [TCP_CONNTRACK_TIME_WAIT ] = "TIME_WAIT",
 		[TCP_CONNTRACK_CLOSE ] = "CLOSE" };
 
-const char * const sctp_states[SCTP_CONNTRACK_MAX] = {
-		[SCTP_CONNTRACK_NONE ] = "NONE",
-		[SCTP_CONNTRACK_CLOSED] = "CLOSED",
+const char * const sctp_states[SCTP_CONNTRACK_MAX] = { [SCTP_CONNTRACK_NONE
+		] = "NONE", [SCTP_CONNTRACK_CLOSED] = "CLOSED",
 		[SCTP_CONNTRACK_COOKIE_WAIT] = "COOKIE_WAIT",
 		[SCTP_CONNTRACK_COOKIE_ECHOED] = "COOKIE_ECHOED",
 		[SCTP_CONNTRACK_ESTABLISHED] = "ESTABLISHED",
@@ -73,31 +64,30 @@ const char * const sctp_states[SCTP_CONNTRACK_MAX] = {
 		[SCTP_CONNTRACK_SHUTDOWN_RECD] = "SHUTDOWN_RECD",
 		[SCTP_CONNTRACK_SHUTDOWN_ACK_SENT] = "SHUTDOWN_ACK_SENT", };
 
-const char * const dccp_states[DCCP_CONNTRACK_MAX] = {
-		[DCCP_CONNTRACK_NONE ] = "NONE",
-		[DCCP_CONNTRACK_REQUEST] = "REQUEST",
-		[DCCP_CONNTRACK_RESPOND] = "RESPOND",
-		[DCCP_CONNTRACK_PARTOPEN ] = "PARTOPEN",
-		[DCCP_CONNTRACK_OPEN] = "OPEN",
-		[DCCP_CONNTRACK_CLOSEREQ] = "CLOSEREQ",
-		[DCCP_CONNTRACK_CLOSING ] = "CLOSING",
-		[DCCP_CONNTRACK_TIMEWAIT] = "TIMEWAIT",
-		[DCCP_CONNTRACK_IGNORE] = "IGNORE",
-		[DCCP_CONNTRACK_INVALID ] = "INVALID", };
+const char * const dccp_states[DCCP_CONNTRACK_MAX] = { [DCCP_CONNTRACK_NONE
+		] = "NONE", [DCCP_CONNTRACK_REQUEST] = "REQUEST",
+		[DCCP_CONNTRACK_RESPOND] = "RESPOND", [DCCP_CONNTRACK_PARTOPEN
+				] = "PARTOPEN", [DCCP_CONNTRACK_OPEN] = "OPEN",
+		[DCCP_CONNTRACK_CLOSEREQ] = "CLOSEREQ", [DCCP_CONNTRACK_CLOSING
+				] = "CLOSING", [DCCP_CONNTRACK_TIMEWAIT] = "TIMEWAIT",
+		[DCCP_CONNTRACK_IGNORE] = "IGNORE", [DCCP_CONNTRACK_INVALID
+				] = "INVALID", };
 
 static void setField(jobject connection, const char * field, const char * value) {
 	jclass connectionCls = (*env)->GetObjectClass(env, connection);
-	jmethodID
-			setMethod =
-					(*env)->GetMethodID(env, connectionCls, "setField", "(Ljava/lang/String;Ljava/lang/String;)V");
-	(*env)->CallVoidMethod(env, connection, setMethod, (*env)->NewStringUTF(env, field), (*env)->NewStringUTF(env, value));
+	jmethodID setMethod = (*env)->GetMethodID(env, connectionCls, "setField",
+			"(Ljava/lang/String;Ljava/lang/String;)V");
+	(*env)->CallVoidMethod(env, connection, setMethod,
+			(*env)->NewStringUTF(env, field), (*env)->NewStringUTF(env, value));
 }
 
 jobject newConnection(char* connectionID) {
-	return (*env)->CallObjectMethod(env, obj, buildMethod, (*env)->NewStringUTF(env, connectionID));
+	return (*env)->CallObjectMethod(env, obj, buildMethod,
+			(*env)->NewStringUTF(env, connectionID));
 }
 
-static int cb(enum nf_conntrack_msg_type type, struct nf_conntrack *ct, void *data) {
+static int cb(enum nf_conntrack_msg_type type, struct nf_conntrack *ct,
+		void *data) {
 
 	char tmp[128];
 
@@ -116,17 +106,21 @@ static int cb(enum nf_conntrack_msg_type type, struct nf_conntrack *ct, void *da
 
 	switch (l3ProtoNum) {
 	case AF_INET:
-		if (inet_ntop(AF_INET, nfct_get_attr(ct, ATTR_IPV4_SRC), tmp, sizeof(tmp)))
+		if (inet_ntop(AF_INET, nfct_get_attr(ct, ATTR_IPV4_SRC), tmp,
+				sizeof(tmp)))
 			setField(conn, "src", tmp);
 
-		if (inet_ntop(AF_INET, nfct_get_attr(ct, ATTR_IPV4_DST), tmp, sizeof(tmp)))
+		if (inet_ntop(AF_INET, nfct_get_attr(ct, ATTR_IPV4_DST), tmp,
+				sizeof(tmp)))
 			setField(conn, "dst", tmp);
 		break;
 	case AF_INET6:
-		if (inet_ntop(AF_INET6, nfct_get_attr(ct, ATTR_IPV6_SRC), tmp, sizeof(tmp)))
+		if (inet_ntop(AF_INET6, nfct_get_attr(ct, ATTR_IPV6_SRC), tmp,
+				sizeof(tmp)))
 			setField(conn, "src", tmp);
 
-		if (inet_ntop(AF_INET6, nfct_get_attr(ct, ATTR_IPV6_DST), tmp, sizeof(tmp)))
+		if (inet_ntop(AF_INET6, nfct_get_attr(ct, ATTR_IPV6_DST), tmp,
+				sizeof(tmp)))
 			setField(conn, "dst", tmp);
 		break;
 
@@ -159,10 +153,12 @@ static int cb(enum nf_conntrack_msg_type type, struct nf_conntrack *ct, void *da
 		setField(conn, "state", states[nfct_get_attr_u8(ct, ATTR_TCP_STATE)]);
 		break;
 	case IPPROTO_SCTP:
-		setField(conn, "state", sctp_states[nfct_get_attr_u8(ct, ATTR_SCTP_STATE)]);
+		setField(conn, "state",
+				sctp_states[nfct_get_attr_u8(ct, ATTR_SCTP_STATE)]);
 		break;
 	case IPPROTO_DCCP:
-		setField(conn, "state", dccp_states[nfct_get_attr_u8(ct, ATTR_DCCP_STATE)]);
+		setField(conn, "state",
+				dccp_states[nfct_get_attr_u8(ct, ATTR_DCCP_STATE)]);
 		break;
 	}
 

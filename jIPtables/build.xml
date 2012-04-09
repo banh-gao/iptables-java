@@ -31,10 +31,10 @@
 	</target>
 	<target name="build-native" depends="build-project" description="Build the native libraries.">
 		<exec executable="gcc" failonerror="true">
-			<arg line="-l netfilter_log_libipulog -I ${jnidir} -I ${jnidir}/linux -I ./include -shared -o libjiptables_log.so src/jiptables_log.c" />
+			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -Wl,-soname,libjiptables_log.so.1 -o libjiptables_log.so src/jiptables_log.c" />
 		</exec>
 		<exec executable="gcc" failonerror="true">
-			<arg line="-l netfilter_conntrack -I ${jnidir} -I ${jnidir}/linux -I ./include -shared -o libjiptables_conntrack.so src/jiptables_conntrack.c" />
+			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -Wl,-soname,libjiptables_conntrack.so.1 -o libjiptables_conntrack.so src/jiptables_conntrack.c" />
 		</exec>
 	</target>
 	<target name="clean" description="Delete the generated builds.">

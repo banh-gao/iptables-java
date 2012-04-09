@@ -57,24 +57,25 @@ jmethodID buildMethod;
 
 static void setField(jobject retPacket, char * field, char * value) {
 	jclass retPacketCls = (*env)->GetObjectClass(env, retPacket);
-	jmethodID
-			setMethod =
-					(*env)->GetMethodID(env, retPacketCls, "setField", "(Ljava/lang/String;Ljava/lang/String;)V");
-	(*env)->CallVoidMethod(env, retPacket, setMethod, (*env)->NewStringUTF(env, field), (*env)->NewStringUTF(env, value));
+	jmethodID setMethod = (*env)->GetMethodID(env, retPacketCls, "setField",
+			"(Ljava/lang/String;Ljava/lang/String;)V");
+	(*env)->CallVoidMethod(env, retPacket, setMethod,
+			(*env)->NewStringUTF(env, field), (*env)->NewStringUTF(env, value));
 }
 
 static jobject newPacket(char* protocol) {
-	jobject
-			packet =
-					(*env)->CallObjectMethod(env, obj, buildMethod, (*env)->NewStringUTF(env, protocol));
+	jobject packet = (*env)->CallObjectMethod(env, obj, buildMethod,
+			(*env)->NewStringUTF(env, protocol));
 	setField(packet, "proto", protocol);
 	return packet;
 }
 
 static void _interp_tcp(jobject ret, struct tcphdr *tcph, u_int32_t len) {
 
-	if (len < sizeof(struct tcphdr))
-		return;
+	if (len < sizeof(struct tcphdr)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid tcp header.");
+	}
 
 	char tmp[512];
 
@@ -110,8 +111,10 @@ static void _interp_tcp(jobject ret, struct tcphdr *tcph, u_int32_t len) {
 
 static void _interp_udp(jobject ret, struct udphdr *udph, u_int32_t len) {
 
-	if (len < sizeof(struct udphdr))
-		return;
+	if (len < sizeof(struct udphdr)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid udp header.");
+	}
 
 	char tmp[512];
 	sprintf(tmp, "%u", ntohs(udph->source));
@@ -126,8 +129,10 @@ static void _interp_udp(jobject ret, struct udphdr *udph, u_int32_t len) {
 
 static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
 
-	if (len < sizeof(struct icmphdr))
-		return;
+	if (len < sizeof(struct icmphdr)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid icmp header.");
+	}
 
 	char tmp[512];
 
@@ -149,7 +154,8 @@ static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
 	case ICMP_REDIRECT:
 	case ICMP_PARAMETERPROB:
 		paddr = ntohl(icmph->un.gateway);
-		sprintf(tmp, "%s", (char *) inet_ntop(AF_INET, &paddr, tmpAddr, sizeof(tmpAddr)));
+		sprintf(tmp, "%s",
+				(char *) inet_ntop(AF_INET, &paddr, tmpAddr, sizeof(tmpAddr)));
 		setField(ret, "gateway", tmp);
 		break;
 	case ICMP_DEST_UNREACH:
@@ -166,8 +172,10 @@ static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
 
 static void _interp_icmpv6(jobject ret, struct icmp6_hdr *icmph, u_int32_t len) {
 
-	if (len < sizeof(struct icmphdr))
-		return;
+	if (len < sizeof(struct icmp6_hdr)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid icmp6 header.");
+	}
 
 	char tmp[512];
 
@@ -199,8 +207,10 @@ typedef struct sctphdr {
 
 static void _interp_sctp(jobject ret, struct sctphdr *sctph, u_int32_t len) {
 
-	if (len < sizeof(struct sctphdr))
-		return;
+	if (len < sizeof(struct sctphdr)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid sctp header.");
+	}
 
 	char tmp[512];
 
@@ -232,8 +242,10 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 	u_int8_t curhdr;
 	int fragment = 0;
 
-	if (len < sizeof(struct ip6_hdr))
-		return;
+	if (len < sizeof(struct ip6_hdr)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid ipv6 header.");
+	}
 
 	curhdr = ipv6h->ip6_nxt;
 	ptr = sizeof(struct ip6_hdr);
@@ -364,7 +376,7 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 		_interp_udp(ret, (void *) ipv6h + ptr, len);
 		break;
 	case IPPROTO_ICMPV6:
-		_interp_icmp(ret, (void *) ipv6h + ptr, len);
+		_interp_icmpv6(ret, (void *) ipv6h + ptr, len);
 		break;
 	}
 	return ret;
@@ -374,8 +386,10 @@ static jobject _interp_arp(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	const struct ether_arp *arph = (struct ether_arp*) pkt->payload;
 
-	if (len < sizeof(struct ether_arp))
-		return;
+	if (len < sizeof(struct ether_arp)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid arp header.");
+	}
 
 	jobject retPacket = newPacket("arp");
 
@@ -388,11 +402,13 @@ static jobject _interp_arp(ulog_packet_msg_t *pkt, u_int32_t len) {
 	setField(retPacket, "arp_dst", (char *) &arph->arp_tpa);
 
 	u_int8_t * mac = (u_int8_t *) arph->arp_sha;
-	sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2],
+			mac[3], mac[4], mac[5]);
 	setField(retPacket, "arp_hwdst", tmp);
 
 	mac = (u_int8_t *) arph->arp_tha;
-	sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2],
+			mac[3], mac[4], mac[5]);
 	setField(retPacket, "arp_hwdst", tmp);
 	return retPacket;
 }
@@ -403,8 +419,10 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	void *transportHdr = (u_int32_t *) iph + iph->ihl;
 
-	if (len < sizeof(struct iphdr) || len <= (u_int32_t)(iph->ihl * 4))
-		return;
+	if (len < sizeof(struct iphdr) || len <= (u_int32_t)(iph->ihl * 4)) {
+		jclass Exception = (*env)->FindClass(env, "java/lang/Exception");
+		(*env)->ThrowNew(env, Exception, "Invalid ip header.");
+	}
 
 	len -= iph->ihl * 4;
 
@@ -431,8 +449,10 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 	char tmp[512];
 
 	char * tmpAddr = malloc(sizeof(char) * INET_ADDRSTRLEN);
-	setField(retPacket, "src", (char *) inet_ntop(AF_INET, &iph->saddr, tmpAddr, sizeof(tmpAddr)));
-	setField(retPacket, "dst", (char *) inet_ntop(AF_INET, &iph->daddr, tmpAddr, sizeof(tmp)));
+	setField(retPacket, "src",
+			(char *) inet_ntop(AF_INET, &iph->saddr, tmpAddr, sizeof(tmpAddr)));
+	setField(retPacket, "dst",
+			(char *) inet_ntop(AF_INET, &iph->daddr, tmpAddr, sizeof(tmp)));
 
 	sprintf(tmp, "%02X", iph->tos & IPTOS_TOS_MASK);
 	setField(retPacket, "tos", tmp);
@@ -544,7 +564,8 @@ static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	if (pkt->mac_len) {
 		unsigned char *mac = pkt->mac;
-		sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+		sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2],
+				mac[3], mac[4], mac[5]);
 		setField(retPacket, "mac", tmp);
 	}
 
@@ -554,13 +575,14 @@ static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 JNIEXPORT void JNICALL Java_net_sf_jIPtables_log_NetFilterLogTask_receiveNewPacket(JNIEnv * env, jobject obj) {
 	unsigned char buf[BUFSIZE];
 	len = ipulog_read(h, buf, BUFSIZE, 1);
+
 	if (len <= 0) {
 		ipulog_perror("ulog_test: short read");
-		exit(1);
+		return;
 	}
 
 	jobject retPacket;
-	while (upkt = ipulog_get_packet(h, buf, len)) {
+	while ((upkt = ipulog_get_packet(h, buf, len))) {
 		retPacket = _interp_pkt(upkt, len);
 		(*env)->CallVoidMethod(env, obj, notificationMethod,retPacket);
 	}
