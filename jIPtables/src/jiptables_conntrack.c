@@ -26,7 +26,7 @@
 #include <string.h>
 #include <errno.h>
 #include <netinet/in.h>
-
+#include <arpa/inet.h>
 #include <libnetfilter_conntrack/libnetfilter_conntrack.h>
 #include <libnetfilter_conntrack/libnetfilter_conntrack_tcp.h>
 #include <libnetfilter_conntrack/libnetfilter_conntrack_dccp.h>
@@ -41,11 +41,6 @@ jmethodID newNotificationMethod;
 jmethodID updateNotificationMethod;
 jmethodID terminatedNotificationMethod;
 struct nfct_handle *h;
-
-const char * const proto2str[IPPROTO_MAX] = { [IPPROTO_TCP] = "tcp",
-		[IPPROTO_UDP] = "udp", [IPPROTO_UDPLITE] = "udplite", [IPPROTO_ICMP
-				] = "icmp", [IPPROTO_ICMPV6 ] = "icmpv6", [IPPROTO_SCTP
-				] = "sctp", [IPPROTO_GRE] = "gre", [IPPROTO_DCCP] = "dccp", };
 
 const char * const states[TCP_CONNTRACK_MAX] = {
 		[TCP_CONNTRACK_NONE ] = "NONE", [TCP_CONNTRACK_SYN_SENT ] = "SYN_SENT",
@@ -102,7 +97,6 @@ static int cb(enum nf_conntrack_msg_type type, struct nf_conntrack *ct,
 
 	sprintf(tmp, "%u", l4ProtoNum);
 	setField(conn, "l4protoNum", tmp);
-	setField(conn, "l4proto", proto2str[l4ProtoNum]);
 
 	switch (l3ProtoNum) {
 	case AF_INET:

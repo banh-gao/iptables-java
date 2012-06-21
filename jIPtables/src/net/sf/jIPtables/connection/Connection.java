@@ -33,8 +33,52 @@ import java.net.UnknownHostException;
  */
 public class Connection {
 
-	private int l3protocolNum;
-	private String l4protocol;
+	enum NetworkProtocol {
+		IPv4(2), IPv6(41);
+
+		private final int protocolNum;
+
+		private NetworkProtocol(int protocolNum) {
+			this.protocolNum = protocolNum;
+		}
+
+		public static NetworkProtocol valueOf(int l3ProtoNum) {
+			for (NetworkProtocol p : values()) {
+				if (p.protocolNum == l3ProtoNum)
+					return p;
+			}
+			return null;
+		}
+	}
+
+	enum TransportProtocol {
+		ICMP(1),
+		IGMP(2),
+		TCP(6),
+		UDP(17),
+		DCCP(33),
+		GRE(47),
+		ICMPv6(58),
+		SCTP(132),
+		UDP_LITE(136);
+
+		private final int protocolNum;
+
+		private TransportProtocol(int protocolNum) {
+			this.protocolNum = protocolNum;
+		}
+
+		public static TransportProtocol valueOf(int l4ProtoNum) {
+			for (TransportProtocol p : values()) {
+				if (p.protocolNum == l4ProtoNum)
+					return p;
+			}
+			return null;
+		}
+	}
+
+	private NetworkProtocol networkProtocol;
+	private TransportProtocol transportProtocol;
 	private int l4protocolNum;
 
 	private InetAddress srcAddr;
@@ -59,14 +103,12 @@ public class Connection {
 		this.id = id;
 	}
 
-	//Used by the native code to set this object fields
+	// Used by the native code to set this object fields
 	void setField(String field, String value) {
 		if ("l3protoNum".equals(field))
-			l3protocolNum = Integer.parseInt(value);
+			networkProtocol = NetworkProtocol.valueOf(Integer.parseInt(value));
 		else if ("l4protoNum".equals(field))
-			l4protocolNum = Integer.parseInt(value);
-		else if ("l4proto".equals(field))
-			l4protocol = value;
+			transportProtocol = TransportProtocol.valueOf(Integer.parseInt(value));
 		else if ("src".equals(field))
 			srcAddr = parseAddress(value);
 		else if ("dst".equals(field))
@@ -101,26 +143,17 @@ public class Connection {
 	}
 
 	/**
-	 * @return The level 3 protocol number, for example 2 for ip
+	 * @return The layer 3 protocol
 	 */
-	public int getL3protocolNum() {
-		return l3protocolNum;
+	public NetworkProtocol getNetworkProtocol() {
+		return networkProtocol;
 	}
 
 	/**
-	 * @return The level 4 protocol number, for example 6 for TCP or 17 for UDP
+	 * @return The layer 4 protocol
 	 */
-	public int getL4protocolNum() {
-		return l4protocolNum;
-	}
-
-	/**
-	 * @return The level 4 protocol name of the protocol stack, for example TCP
-	 *         or
-	 *         UDP
-	 */
-	public String getL4protocol() {
-		return l4protocol;
+	public TransportProtocol getTransportProtocol() {
+		return transportProtocol;
 	}
 
 	public InetAddress getDestinationAddress() {
@@ -192,6 +225,6 @@ public class Connection {
 
 	@Override
 	public String toString() {
-		return "Connection [l3protocolNum=" + l3protocolNum + ", l4protocol=" + l4protocol + ", l4protocolNum=" + l4protocolNum + ", srcAddr=" + srcAddr + ", dstAddr=" + dstAddr + ", srcPort=" + srcPort + ", dstPort=" + dstPort + ", origBytes=" + origBytes + ", origPackets=" + origPackets + ", replyBytes=" + replyBytes + ", replyPackets=" + replyPackets + ", mark=" + mark + ", state=" + state + ", timeout=" + timeout + ", id=" + id + "]";
+		return "Connection [networkProtocol=" + networkProtocol + ", transportProtocol=" + transportProtocol + ", l4protocolNum=" + l4protocolNum + ", srcAddr=" + srcAddr + ", dstAddr=" + dstAddr + ", srcPort=" + srcPort + ", dstPort=" + dstPort + ", origBytes=" + origBytes + ", origPackets=" + origPackets + ", replyBytes=" + replyBytes + ", replyPackets=" + replyPackets + ", mark=" + mark + ", state=" + state + ", timeout=" + timeout + ", id=" + id + "]";
 	}
 }

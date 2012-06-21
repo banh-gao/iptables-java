@@ -22,22 +22,53 @@
  * 
  */
 
+import net.sf.jIPtables.connection.ConnTracker;
+import net.sf.jIPtables.connection.Connection;
+import net.sf.jIPtables.connection.ConnectionListener;
 import net.sf.jIPtables.log.LogListener;
 import net.sf.jIPtables.log.LogTracker;
 import net.sf.jIPtables.log.Packet;
+import net.sf.jIPtables.log.TCPPacket;
 
 
 
 public class Test {
 	public static void main(String[] args) {
+		testConn();
 		
+	}
+	
+	private static void testLog() {
 		LogTracker t = LogTracker.getInstance();
 		
 		t.addLogListener(new LogListener() {
 			@Override
 			public void onNewLog(Packet newPacket) {
-				if("INDROPPED".equals(newPacket.getPrefix()))
+				if(newPacket instanceof TCPPacket) {
+					TCPPacket tpkt = (TCPPacket) newPacket;
+					System.out.println(tpkt);
+				} else if("INDROPPED".equals(newPacket.getPrefix()))
 					System.out.println("IF: "+ newPacket.getINInterface());
+			}
+		});
+	}
+	
+	private static void testConn() {
+		ConnTracker.addConnectionListener(new ConnectionListener() {
+			
+			@Override
+			public void onConnectionTerminated(Connection terminatedConnection) {
+				System.out.println("TER: "+terminatedConnection);
+			}
+			
+			@Override
+			public void onConnectionStateChanged(Connection changedConnection) {
+				System.out.println("CHG: "+changedConnection);
+			}
+			
+			@Override
+			public void onConnectionStarted(Connection startedConnection) {
+				System.out.println("NEW: "+startedConnection);
 			}
 		});
 	}

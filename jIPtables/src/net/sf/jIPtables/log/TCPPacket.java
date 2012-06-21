@@ -167,6 +167,6 @@ public class TCPPacket extends IPv4Packet {
 
 	@Override
 	public String toString() {
-		return "TCPPacket [sport=" + sport + ", dport=" + dport + ", seq=" + seq + ", ackseq=" + ackseq + ", window=" + window + ", checksum=" + checksum + ", urgp=" + urgp + ", urg=" + urg + ", ack=" + ack + ", psh=" + psh + ", rst=" + rst + ", syn=" + syn + ", fin=" + fin + ", toString()=" + super.toString() + "]";
+		return "TCPPacket [sport=" + sport + ", dport=" + dport + ", seq=" + seq + ", ackseq=" + ackseq + ", window=" + window + ", checksum=" + checksum + ", urgp=" + urgp + ", urg=" + urg + ", ack=" + ack + ", psh=" + psh + ", rst=" + rst + ", syn=" + syn + ", fin=" + fin + ", IPv4=" + super.toString() + "]";
 	}
 }

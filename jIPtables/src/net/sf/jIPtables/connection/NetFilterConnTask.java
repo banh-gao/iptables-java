@@ -41,12 +41,15 @@ class NetFilterConnTask extends Thread {
 	}
 
 	public NetFilterConnTask() {
-		start();
+		init();
 	}
 
 	@Override
 	public void run() {
-		init();
+	}
+	
+	private void handleConnectionEvent() {
+		
 	}
 
 	/**
@@ -75,15 +78,16 @@ class NetFilterConnTask extends Thread {
 
 	// Called from native code for new connection notification
 	private void notifyNewConnection(Object newConnection) {
-		if (newConnection instanceof Connection)
-			for (ConnectionListener l : ConnectionTracker.connectionListeners)
+		if (newConnection instanceof Connection) {
+			for (ConnectionListener l : ConnTracker.connectionListeners)
 				l.onConnectionStarted((Connection) newConnection);
+		}
 	}
 
 	// Called from native code for updated connection notification
 	private void notifyUpdatedConnection(Object updatedConnection) {
 		if (updatedConnection instanceof Connection)
-			for (ConnectionListener l : ConnectionTracker.connectionListeners)
+			for (ConnectionListener l : ConnTracker.connectionListeners)
 				l.onConnectionStateChanged((Connection) updatedConnection);
 	}
 
@@ -92,7 +96,7 @@ class NetFilterConnTask extends Thread {
 		if (!(terminatedConnection instanceof Connection))
 			return;
 
-		for (ConnectionListener l : ConnectionTracker.connectionListeners)
+		for (ConnectionListener l : ConnTracker.connectionListeners)
 			l.onConnectionTerminated((Connection) terminatedConnection);
 
 		connections.remove(((Connection) terminatedConnection).getId());

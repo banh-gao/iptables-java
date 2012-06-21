@@ -9,8 +9,8 @@
 	</path>
 	<target name="help" description="Display this help">
 		<exec executable="ant">
-		   <arg value="-p"/>
-		  </exec>
+			<arg value="-p" />
+		</exec>
 		<echo>Params:</echo>
 		<echo>-Djnidir=path	The path where the VM jni header files are stored</echo>
 	</target>
@@ -31,10 +31,10 @@
 	</target>
 	<target name="build-native" depends="build-project" description="Build the native libraries.">
 		<exec executable="gcc" failonerror="true">
-			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -Wl,-soname,libjiptables_log.so.1 -o libjiptables_log.so src/jiptables_log.c" />
+			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o libjiptables_log.so src/jiptables_log.c -lnetfilter_log_libipulog" />
 		</exec>
 		<exec executable="gcc" failonerror="true">
-			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -Wl,-soname,libjiptables_conntrack.so.1 -o libjiptables_conntrack.so src/jiptables_conntrack.c" />
+			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o libjiptables_conntrack.so src/jiptables_conntrack.c -lnetfilter_conntrack" />
 		</exec>
 	</target>
 	<target name="clean" description="Delete the generated builds.">

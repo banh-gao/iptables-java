@@ -24,6 +24,7 @@
 
 package net.sf.jIPtables.log;
 
+
 /**
  * This thread listens to netfilter log notifications and notifies the java
  * registered log listeners

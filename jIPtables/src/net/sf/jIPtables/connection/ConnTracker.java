@@ -31,15 +31,18 @@ import java.util.List;
  * Track the connections activity and notify the listeners for connection events
  * 
  */
-public class ConnectionTracker {
+public class ConnTracker {
 
 	static final List<ConnectionListener> connectionListeners = new ArrayList<ConnectionListener>();
 
-	private static NetFilterConnTask listenerTask = new NetFilterConnTask();
+	private static NetFilterConnTask listenerTask;
 
 	/**
 	 * Register a connection listener to be notified when a connection event
-	 * happens, the connection events are the ones defined by the {@link ConnectionListener} interface
+	 * happens, the connection events are the ones defined by the
+	 * {@link ConnectionListener} interface
+	 * 
+	 * @throws BindingException
 	 * 
 	 * @throws NullPointerException
 	 *             If the specified listener is null
@@ -49,7 +52,7 @@ public class ConnectionTracker {
 			throw new NullPointerException();
 		connectionListeners.add(l);
 
-		if (listenerTask.isTerminated()) {
+		if (listenerTask == null || listenerTask.isTerminated()) {
 			listenerTask = new NetFilterConnTask();
 		}
 	}
