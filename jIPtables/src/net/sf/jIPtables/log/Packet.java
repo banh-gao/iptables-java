@@ -77,12 +77,14 @@ public class Packet {
 			return new SCTPPacket();
 		else if ("arp".equals(ipProtocol))
 			return new ARPPacket();
-		else if ("ipv4".equals(ipProtocol))
-			return new IPv4Packet();
-		else if ("ipv6".equals(ipProtocol))
-			return new IPv6Packet();
-		else
+		else if ("IPv4unknown".equals(ipProtocol)) {
+			return new IPv4UnknownPacket();
+		} else if ("IPv6unknown".equals(ipProtocol))
+			return new IPv6UnknownPacket();
+		else {
+			System.out.println(ipProtocol);
 			return new Packet();
+		}
 	}
 
 	protected void setField(String field, String value) {
@@ -102,8 +104,9 @@ public class Packet {
 			inInterface = parseInterface(value);
 		else if ("outDev".equals(field))
 			outInterface = parseInterface(value);
-		else if ("sec".equals(field))
+		else if ("sec".equals(field)) {
 			date = new Date(Long.parseLong(value));
+		}
 	}
 
 	/**

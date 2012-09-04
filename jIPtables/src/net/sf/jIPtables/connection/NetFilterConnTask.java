@@ -49,7 +49,6 @@ class NetFilterConnTask extends Thread {
 	}
 	
 	private void handleConnectionEvent() {
-		
 	}
 
 	/**

@@ -86,4 +86,11 @@ public class ARPPacket extends IPv4Packet {
 	public String getARPHWDestinationAddress() {
 		return HWdst;
 	}
+
+	@Override
+	public String toString() {
+		return "ARPPacket [opcode=" + opcode + ", src=" + src + ", dst=" + dst + ", HWsrc=" + HWsrc + ", HWdst=" + HWdst + ", toString()=" + super.toString() + "]";
+	}
+	
+	
 }

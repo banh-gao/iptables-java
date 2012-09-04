@@ -61,7 +61,7 @@ public class ICMPPacket extends IPv4Packet {
 		
 	}
 
-	private Inet4Address parseGateway(String rawData) {
+	private static Inet4Address parseGateway(String rawData) {
 		InetAddress gw = null;
 		try {
 			gw = InetAddress.getByName(getValue(rawData, "GATEWAY"));

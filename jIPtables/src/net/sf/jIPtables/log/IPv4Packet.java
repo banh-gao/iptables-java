@@ -27,27 +27,30 @@ package net.sf.jIPtables.log;
 /**
  * An IPv4 packet logged by the firewall
  */
-public class IPv4Packet extends Packet {
+public abstract class IPv4Packet extends Packet {
 
 	private int totalLength;
 
 	private int tos;
 	private int ttl;
 	private int id;
+	private int transportProtocol;
 
 	private boolean reservedFragment;
 	private boolean dontFragment;
 	private boolean moreFragments;
 	private int fragmentOffset;
-	
+
 	@Override
 	protected void setField(String field, String value) {
 		super.setField(field, value);
-		
+
 		if ("tos".equals(field))
 			tos = Integer.parseInt(value);
 		else if ("ttl".equals(field))
 			ttl = Integer.parseInt(value);
+		else if ("transport_proto".equals(field))
+			transportProtocol = Integer.parseInt(value);
 		else if ("tot_len".equals(field))
 			totalLength = Integer.parseInt(value);
 		else if ("id".equals(field))
@@ -110,7 +113,7 @@ public class IPv4Packet extends Packet {
 	public boolean isMoreFragments() {
 		return moreFragments;
 	}
-	
+
 	/**
 	 * @return True if the ip reserved fragment flag is set
 	 */
@@ -118,8 +121,12 @@ public class IPv4Packet extends Packet {
 		return reservedFragment;
 	}
 
+	public int getTransportProtocolId() {
+		return transportProtocol;
+	}
+
 	@Override
 	public String toString() {
-		return "IPv4Packet [totalLength=" + totalLength + ", tos=" + tos + ", ttl=" + ttl + ", id=" + id + ", reservedFragment=" + reservedFragment + ", dontFragment=" + dontFragment + ", moreFragments=" + moreFragments + ", fragmentOffset=" + fragmentOffset + ", toString()=" + super.toString() + "]";
+		return "IPv4Packet [totalLength=" + totalLength + ", tos=" + tos + ", ttl=" + ttl + ", id=" + id + ", transportProtocol=" + transportProtocol + ", reservedFragment=" + reservedFragment + ", dontFragment=" + dontFragment + ", moreFragments=" + moreFragments + ", fragmentOffset=" + fragmentOffset + ", toString()=" + super.toString() + "]";
 	}
 }

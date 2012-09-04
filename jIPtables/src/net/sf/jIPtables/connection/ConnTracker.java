@@ -54,6 +54,7 @@ public class ConnTracker {
 
 		if (listenerTask == null || listenerTask.isTerminated()) {
 			listenerTask = new NetFilterConnTask();
+			listenerTask.start();
 		}
 	}
 

@@ -27,7 +27,7 @@ package net.sf.jIPtables.log;
 /**
  * An IPv6 packet logged by the firewall
  */
-public class IPv6Packet extends Packet {
+public abstract class IPv6Packet extends Packet {
 
 	private int totalLength;
 

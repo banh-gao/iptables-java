@@ -71,6 +71,24 @@ static jobject newPacket(char* protocol) {
 	return packet;
 }
 
+static void _interp_unknown(jobject ret, char *transporth, u_int32_t len) {
+	jbyteArray tmp = (*env)->NewByteArray(env, len);
+
+	jbyte toCopy[len];
+
+	int i;
+	for (i = 0; i < len; i++) {
+	    toCopy[i] = transporth[i];
+	}
+
+	(*env)->SetByteArrayRegion(env, tmp, 0, len, toCopy);
+
+	jclass retPacketCls = (*env)->GetObjectClass(env, ret);
+	jmethodID rawMethod = (*env)->GetMethodID(env, retPacketCls, "setRawHeader", "([B)V");
+	
+	(*env)->CallVoidMethod(env, ret, rawMethod, tmp);
+}
+
 static void _interp_tcp(jobject ret, struct tcphdr *tcph, u_int32_t len) {
 	if (len < sizeof(struct tcphdr)) {
 		ipulog_perror("Invalid tcp header.");
@@ -256,7 +274,7 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 		ret = newPacket("icmpv6");
 		break;
 	default:
-		ret = newPacket("ipv6");
+		ret = newPacket("IPv6unknown");
 		break;
 	}
 
@@ -335,7 +353,7 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 			ret = newPacket("icmpv6");
 			break;
 		default:
-			ret = newPacket("ipv6");
+			ret = newPacket("IPv6unknown");
 			break;
 		}
 	}
@@ -369,6 +387,10 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 		break;
 	case IPPROTO_ICMPV6:
 		_interp_icmpv6(ret, (void *) ipv6h + ptr, len);
+		break;
+
+	default:
+		_interp_unknown(ret, (void *) ipv6h + ptr, len);
 		break;
 	}
 	return ret;
@@ -432,7 +454,7 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 		retPacket = newPacket("sctp");
 		break;
 	default:
-		retPacket = newPacket("ipv4");
+		retPacket = newPacket("IPv4unknown");
 		break;
 	}
 
@@ -454,6 +476,8 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 	setField(retPacket, "tot_len", tmp);
 	sprintf(tmp, "%u", iph->id);
 	setField(retPacket, "id", tmp);
+	sprintf(tmp, "%u", iph->protocol);
+	setField(retPacket, "transport_proto", tmp);
 
 	u_int16_t fragOff = ntohs(iph->frag_off);
 
@@ -470,9 +494,6 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 		sprintf(tmp, "%u", fragOff & IP_OFFMASK);
 		setField(retPacket, "frag", tmp);
 	}
-	/* TODO: checksum
-	 okey_set_u16(&ret[KEY_IP_CSUM], ntohs(iph->check));
-	 */
 
 	switch (iph->protocol) {
 	case IPPROTO_TCP:
@@ -490,13 +511,17 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 	case IPPROTO_SCTP:
 		_interp_sctp(retPacket, transportHdr, len);
 		break;
+
+	default:
+		_interp_unknown(retPacket, transportHdr, len);
+		break;
 	}
 	return retPacket;
 }
 
 static jobject _interp_bridge(ulog_packet_msg_t *pkt, u_int32_t len) {
 
-	// FIXME: Detect protocol
+	// TODO: Detect link protocol
 	const u_int16_t proto = ETH_P_IP;
 
 	jobject retPacket;
@@ -520,7 +545,7 @@ static jobject _interp_bridge(ulog_packet_msg_t *pkt, u_int32_t len) {
 static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 	jobject retPacket;
 
-	//FIXME: Detect packet family
+	//TODO: Detect network protocol
 	u_int8_t family = AF_INET;
 	
 	switch (family) {
@@ -544,8 +569,10 @@ static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	setField(retPacket, "inDev", pkt->indev_name);
 	setField(retPacket, "outDev", pkt->outdev_name);
+
 	sprintf(tmp, "%ld", pkt->timestamp_sec);
 	setField(retPacket, "sec", tmp);
+
 	sprintf(tmp, "%ld", pkt->timestamp_usec);
 	setField(retPacket, "usec", tmp);
 

@@ -28,7 +28,6 @@ The ant script will generate the compiled library files.
 
 USAGE
 To use the library you must include the jar archive in your project and place the compiled library files in a system library directory or in the working directory.
-The doc directory contains the library javadoc documentation.
 
 In order to access to the firewall and netfilter functionalities the library needs the CAP_NET_ADMIN capability.
 You can set that capability by adding to /etc/security/capability.conf a line like:
@@ -36,3 +35,15 @@ You can set that capability by adding to /etc/security/capability.conf a line li
 cap_net_admin        YOUR-APP-USER
 
 replacing YOUR-APP-USER with the username that runs the application.
+You can also assign that capability directly to your java executable with something like:
+
+setcap 'CAP_NET_ADMIN+eip' `readlink -f /usr/bin/java`
+
+however note that this method assigns this capability to any java program using the same java executable.
+
+The library receives log events from the nflog target, its must be setted as the jump target for an iptables rule, the prefix setted with the rule allows to match a log event with a specific rule.
+For example to append a rule for logging to the INPUT chain execute:
+
+iptables -A INPUT -j NFLOG --nflog-prefix INDROPPED
+
+The library will be notified when this rule is reached and the logged packet prefix corresponds to INDROPPED
