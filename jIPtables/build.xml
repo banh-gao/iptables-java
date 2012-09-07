@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project basedir="." default="help" name="jIPtables">
+<project basedir="." default="help" name="iptables-java">
 	<property environment="env" />
 	<property name="debuglevel" value="source,lines,vars" />
 	<property name="target" value="1.6" />
 	<property name="source" value="1.6" />
-	<path id="jIPtables.classpath">
+	<property name="project.version" value="1.0" />
+	<property name="dist.jar" value="dist/${ant.project.name}-${project.version}.jar" />
+	<path id="iptables-java.classpath">
 		<pathelement location="bin" />
 	</path>
 	<target name="help" description="Display this help">
@@ -14,7 +16,9 @@
 		<echo>Params:</echo>
 		<echo>-Djnidir=path	The path where the VM jni header files are stored</echo>
 	</target>
-	<target depends="build-project,build-native" name="build" description="Build the jar library and the native libraries." />
+
+	<target depends="build-project,native" name="build" description="Build the jar library and the native libraries." />
+
 	<target name="build-project" description="Build the jar library.">
 		<mkdir dir="bin" />
 		<copy includeemptydirs="false" todir="bin">
@@ -25,22 +29,46 @@
 		</copy>
 		<javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}" includeantruntime="false">
 			<src path="src" />
-			<classpath refid="jIPtables.classpath" />
+			<classpath refid="iptables-java.classpath" />
 		</javac>
-		<jar basedir="bin" destfile="jiptables.jar" excludes="**.c" />
+		<jar basedir="bin" destfile="${dist.jar}" includes="**.class" />
 	</target>
-	<target name="build-native" depends="build-project" description="Build the native libraries.">
+
+	<target name="native" depends="build-project" description="Build the native libraries.">
 		<exec executable="gcc" failonerror="true">
-			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o libjiptables_log.so src/jiptables_log.c -lnetfilter_log_libipulog" />
-		</exec>
-		<exec executable="gcc" failonerror="true">
-			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o libjiptables_conntrack.so src/jiptables_conntrack.c -lnetfilter_conntrack" />
+			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o dist/libiptables-java.so src/iptablesJava_log.c src/iptablesJava_conn.c -lnetfilter_log_libipulog -lnetfilter_conntrack" />
 		</exec>
 	</target>
+
+	<target name="package_for_debian" depends="build,javadoc">
+		<property name="debPath" value="build/debian/lib${ant.project.name}-${project.version}_${os.arch}" />
+
+		<copy file="${dist.jar}" todir="${debPath}/usr/share/java" />
+		<copy file="dist/lib${ant.project.name}.so" todir="${debPath}/usr/lib" />
+		<copy file="dist/debianControl" tofile="${debPath}/DEBIAN/control" />
+
+		<copy file="README.txt" todir="${debPath}/usr/share/doc/${ant.project.name}" />
+		<copy file="COPYING" todir="${debPath}/usr/share/doc/${ant.project.name}" />
+
+		<copy todir="${debPath}/usr/share/doc/${ant.project.name}/javadoc">
+			<fileset dir="dist/javadoc" includes="**" />
+		</copy>
+
+		<exec executable="dpkg" failonerror="true">
+			<arg line="-b ${debPath}" />
+		</exec>
+		
+		<delete dir="${debPath}" />
+	</target>
+
+	<target name='javadoc' description='Generate javadoc.'>
+		<javadoc use='true' author='true' version='true' overview='overview.html' access='package' sourcepath='src' packagenames='*.*' destdir='dist/javadoc' noqualifier='java.*:javax.*:com.sun.*' linksource='true' />
+	</target>
+
 	<target name="clean" description="Delete the generated builds.">
 		<delete dir="bin" />
-		<delete file="jiptables.jar" />
-		<delete file="libjiptables_log.so" />
-		<delete file="libjiptables_conntrack.so" />
+		<delete file="iptables-java.jar" />
+		<delete file="libiptables-java_log.so" />
+		<delete file="libiptables-java_conntrack.so" />
 	</target>
 </project>

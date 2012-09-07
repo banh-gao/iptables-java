@@ -1,2 +1,2 @@
-libjiptables_conntrack.so
-libjiptables_log.so
+libiptables-java_conntrack.so
+libiptables-java_log.so
