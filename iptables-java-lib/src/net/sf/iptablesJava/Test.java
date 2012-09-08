@@ -22,7 +22,7 @@
  * 
  */
 
-package net.sf.iptablesJava.test;
+package net.sf.iptablesJava;
 
 import net.sf.iptablesJava.connection.ConnTracker;
 import net.sf.iptablesJava.connection.Connection;

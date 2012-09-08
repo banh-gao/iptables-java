@@ -77,6 +77,8 @@ public class Packet {
 			return new SCTPPacket();
 		else if ("arp".equals(ipProtocol))
 			return new ARPPacket();
+		else if ("igmp".equals(ipProtocol))
+			return new IGMPPacket();
 		else if ("IPv4unknown".equals(ipProtocol)) {
 			return new IPv4UnknownPacket();
 		} else if ("IPv6unknown".equals(ipProtocol))

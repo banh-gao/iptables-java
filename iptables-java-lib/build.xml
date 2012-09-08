@@ -20,11 +20,11 @@
 
 	<target name="build-project" description="Build the jar library.">
 		<mkdir dir="bin" />
-		<javac destdir="bin" includeantruntime="false">
-			<src path="src" />
+		<javac destdir="bin" includeantruntime="false" excludes="*.html">
+			<src path="src"/>
 			<classpath refid="iptables-java.classpath" />
 		</javac>
-		<jar basedir="bin" destfile="${dist.jar}" update="true" excludes="**/test/" />
+		<jar basedir="bin" destfile="${dist.jar}" update="true" excludes="**/Test**" />
 	</target>
 
 	<target name="packageForDebian" depends="build,javadoc" description="Generates the debian binary package for a specific architecture.">

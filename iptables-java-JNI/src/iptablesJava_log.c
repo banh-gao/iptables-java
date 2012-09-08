@@ -68,7 +68,7 @@ static void setField(jobject retPacket, char * field, char * value) {
 
 static jobject newPacket(char* protocol) {
 	jobject packet = (*env)->CallObjectMethod(env, obj, buildMethod,
-	(*env)->NewStringUTF(env, protocol));
+			(*env)->NewStringUTF(env, protocol));
 	setField(packet, "proto", protocol);
 	return packet;
 }
@@ -80,14 +80,15 @@ static void _interp_unknown(jobject ret, char *transporth, u_int32_t len) {
 
 	int i;
 	for (i = 0; i < len; i++) {
-	    toCopy[i] = transporth[i];
+		toCopy[i] = transporth[i];
 	}
 
 	(*env)->SetByteArrayRegion(env, tmp, 0, len, toCopy);
 
 	jclass retPacketCls = (*env)->GetObjectClass(env, ret);
-	jmethodID rawMethod = (*env)->GetMethodID(env, retPacketCls, "setRawHeader", "([B)V");
-	
+	jmethodID rawMethod = (*env)->GetMethodID(env, retPacketCls, "setRawHeader",
+			"([B)V");
+
 	(*env)->CallVoidMethod(env, ret, rawMethod, tmp);
 }
 
@@ -187,19 +188,18 @@ static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
 
 static void _interp_igmp(jobject ret, struct igmp * igmph, u_int32_t len) {
 	if (len < sizeof(struct igmp)) {
-			ipulog_perror("Invalid igmp header.");
+		ipulog_perror("Invalid igmp header.");
 	}
 
 	char tmp[512];
 
-	switch(igmph->igmp_type) {
-
-	}
-
-	sprintf(tmp, "%u", igmph->igmp_type);             /* IGMP type */
-	  u_int8_t igmp_code;             /* routing code */
-	  u_int16_t igmp_cksum;           /* checksum */
-	  struct in_addr igmp_group;      /* group address */
+	sprintf(tmp, "%u", igmph->igmp_type);
+	setField(ret, "type", tmp);
+	sprintf(tmp, "%u", igmph->igmp_code);
+	setField(ret, "code", tmp);
+	setField(ret, "group",
+			(char *) inet_ntop(AF_INET, &igmph->igmp_group, tmp,
+					sizeof(struct in_addr)));
 }
 
 static void _interp_icmpv6(jobject ret, struct icmp6_hdr *icmph, u_int32_t len) {
@@ -451,7 +451,7 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	void *transportHdr = (u_int32_t *) iph + iph->ihl;
 
-	if (len < sizeof(struct iphdr) || len <= (u_int32_t)(iph->ihl * 4)) {
+	if (len < sizeof(struct iphdr) || len <= (u_int32_t) (iph->ihl * 4)) {
 		ipulog_perror("Invalid ip header.");
 	}
 
@@ -472,6 +472,9 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 	case IPPROTO_SCTP:
 		retPacket = newPacket("sctp");
 		break;
+	case IPPROTO_IGMP:
+		retPacket = newPacket("igmp");
+		break;
 	default:
 		retPacket = newPacket("IPv4unknown");
 		break;
@@ -479,11 +482,10 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	char tmp[512];
 
-	char * tmpAddr = malloc(sizeof(char) * INET_ADDRSTRLEN);
 	setField(retPacket, "src",
-			(char *) inet_ntop(AF_INET, &iph->saddr, tmpAddr, sizeof(tmpAddr)));
+			(char *) inet_ntop(AF_INET, &iph->saddr, tmp, sizeof(tmp)));
 	setField(retPacket, "dst",
-			(char *) inet_ntop(AF_INET, &iph->daddr, tmpAddr, sizeof(tmp)));
+			(char *) inet_ntop(AF_INET, &iph->daddr, tmp, sizeof(tmp)));
 
 	sprintf(tmp, "%02X", iph->tos & IPTOS_TOS_MASK);
 	setField(retPacket, "tos", tmp);
@@ -531,6 +533,10 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 		_interp_sctp(retPacket, transportHdr, len);
 		break;
 
+	case IPPROTO_IGMP:
+		_interp_igmp(retPacket, transportHdr, len);
+		break;
+
 	default:
 		_interp_unknown(retPacket, transportHdr, len);
 		break;
@@ -566,7 +572,7 @@ static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	//TODO: Detect network protocol
 	u_int8_t family = AF_INET;
-	
+
 	switch (family) {
 	case AF_INET:
 		retPacket = _interp_iphdr(pkt, len);
@@ -608,7 +614,8 @@ static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 	return retPacket;
 }
 
-JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_receiveNewPacket(JNIEnv * env, jobject obj) {
+JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_receiveNewPacket(
+		JNIEnv * env, jobject obj) {
 
 	unsigned char buf[BUFSIZE];
 	len = ipulog_read(h, buf, BUFSIZE, 1);
@@ -621,22 +628,25 @@ JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_receiveNewP
 	jobject retPacket;
 	while ((upkt = ipulog_get_packet(h, buf, len))) {
 		retPacket = _interp_pkt(upkt, len);
-		(*env)->CallVoidMethod(env, obj, notificationMethod,retPacket);
+		(*env)->CallVoidMethod(env, obj, notificationMethod, retPacket);
 	}
 }
 
-JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_init(JNIEnv * javaEnv, jobject javaObj, jint group) {
+JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_init(
+		JNIEnv * javaEnv, jobject javaObj, jint group) {
 	env = javaEnv;
 	obj = javaObj;
 	jclass cls = (*env)->GetObjectClass(env, obj);
-	notificationMethod = (*env)->GetMethodID(env, cls, "notifyNewPacket", "(Ljava/lang/Object;)V");
-	buildMethod = (*env)->GetMethodID(env, cls, "buildNewPacket", "(Ljava/lang/String;)Lnet/sf/iptablesJava/log/Packet;");
+	notificationMethod = (*env)->GetMethodID(env, cls, "notifyNewPacket",
+			"(Ljava/lang/Object;)V");
+	buildMethod = (*env)->GetMethodID(env, cls, "buildNewPacket",
+			"(Ljava/lang/String;)Lnet/sf/iptablesJava/log/Packet;");
 
 	/* create ipulog handle */
 	h = ipulog_create_handle(ipulog_group2gmask(group), BUFSIZE);
 	if (!h) {
 		/* if some error occurrs, print it to stderr */
-		ipulog_perror(NULL);
+		ipulog_perror(NULL );
 		return;
 	}
 }
