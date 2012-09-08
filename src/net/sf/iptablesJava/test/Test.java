@@ -22,6 +22,8 @@
  * 
  */
 
+package net.sf.iptablesJava.test;
+
 import net.sf.iptablesJava.connection.ConnTracker;
 import net.sf.iptablesJava.connection.Connection;
 import net.sf.iptablesJava.connection.ConnectionListener;
@@ -32,6 +34,7 @@ import net.sf.iptablesJava.log.Packet;
 public class Test {
 
 	public static void main(String[] args) {
+		System.out.println(System.getProperty("java.library.path"));
 		testLog();
 		testConn();
 	}

@@ -3,7 +3,6 @@
 	<property environment="env" />
 	<property name="debuglevel" value="source,lines,vars" />
 	<property name="target" value="1.6" />
-	<property name="source" value="1.6" />
 	<property name="project.version" value="1.0" />
 	<property name="dist.jar" value="dist/${ant.project.name}-${project.version}.jar" />
 	<path id="iptables-java.classpath">
@@ -21,26 +20,20 @@
 
 	<target name="build-project" description="Build the jar library.">
 		<mkdir dir="bin" />
-		<copy includeemptydirs="false" todir="bin">
-			<fileset dir="src">
-				<exclude name="**/*.launch" />
-				<exclude name="**/*.java" />
-			</fileset>
-		</copy>
-		<javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}" includeantruntime="false">
+		<javac destdir="bin" includeantruntime="false">
 			<src path="src" />
 			<classpath refid="iptables-java.classpath" />
 		</javac>
-		<jar basedir="bin" destfile="${dist.jar}" includes="**.class" />
+		<jar basedir="bin" destfile="${dist.jar}" update="true" excludes="**/test/" />
 	</target>
 
 	<target name="native" depends="build-project" description="Build the native libraries.">
 		<exec executable="gcc" failonerror="true">
-			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o dist/libiptables-java.so src/iptablesJava_log.c src/iptablesJava_conn.c -lnetfilter_log_libipulog -lnetfilter_conntrack" />
+			<arg line="-I ${jnidir} -I ${jnidir}/linux -I ./include -shared -fPIC -o dist/libiptables-java.so src/iptablesJava_log.c src/iptablesJava_conn.c" />
 		</exec>
 	</target>
 
-	<target name="package_for_debian" depends="build,javadoc">
+	<target name="package_for_debian" depends="build,javadoc" description="Generates the debian binary package for a specific architecture.">
 		<property name="debPath" value="build/debian/lib${ant.project.name}-${project.version}_${os.arch}" />
 
 		<copy file="${dist.jar}" todir="${debPath}/usr/share/java" />
@@ -57,7 +50,7 @@
 		<exec executable="dpkg" failonerror="true">
 			<arg line="-b ${debPath}" />
 		</exec>
-		
+
 		<delete dir="${debPath}" />
 	</target>
 
