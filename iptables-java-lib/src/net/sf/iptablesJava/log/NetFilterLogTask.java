@@ -49,7 +49,7 @@ class NetFilterLogTask extends Thread {
 	public void run() {
 		init(nfGroup);
 		while (!terminate) {
-			receiveNewPacket();
+			receiveNewPacket(nfGroup);
 		}
 	}
 
@@ -57,7 +57,7 @@ class NetFilterLogTask extends Thread {
 		this.terminate = terminate;
 	}
 
-	private native void receiveNewPacket();
+	private native void receiveNewPacket(int group);
 
 	private native void init(int group);
 

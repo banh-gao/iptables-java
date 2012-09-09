@@ -16,10 +16,10 @@ extern "C" {
 /*
  * Class:     net_sf_iptablesJava_log_NetFilterLogTask
  * Method:    receiveNewPacket
- * Signature: ()V
+ * Signature: (I)V
  */
 JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_receiveNewPacket
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jint);
 
 /*
  * Class:     net_sf_iptablesJava_log_NetFilterLogTask

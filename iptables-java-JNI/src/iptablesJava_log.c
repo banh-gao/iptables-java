@@ -47,18 +47,12 @@
 
 #define BUFSIZE 2048
 
-int len;
-ulog_packet_msg_t* upkt;
-unsigned char* buf;
-struct ipulog_handle* h;
-
-JNIEnv* env;
-jobject obj;
+struct ipulog_handle** ipulogHandles = NULL;
 
 jmethodID notificationMethod;
 jmethodID buildMethod;
 
-static void setField(jobject retPacket, char * field, char * value) {
+static void setField(JNIEnv* env, jobject retPacket, char * field, char * value) {
 	jclass retPacketCls = (*env)->GetObjectClass(env, retPacket);
 	jmethodID setMethod = (*env)->GetMethodID(env, retPacketCls, "setField",
 			"(Ljava/lang/String;Ljava/lang/String;)V");
@@ -66,14 +60,15 @@ static void setField(jobject retPacket, char * field, char * value) {
 			(*env)->NewStringUTF(env, field), (*env)->NewStringUTF(env, value));
 }
 
-static jobject newPacket(char* protocol) {
-	jobject packet = (*env)->CallObjectMethod(env, obj, buildMethod,
+static jobject newPacket(JNIEnv* env, jobject callerObj, char* protocol) {
+	jobject packet = (*env)->CallObjectMethod(env, callerObj, buildMethod,
 			(*env)->NewStringUTF(env, protocol));
-	setField(packet, "proto", protocol);
+	setField(env, packet, "proto", protocol);
 	return packet;
 }
 
-static void _interp_unknown(jobject ret, char *transporth, u_int32_t len) {
+static void _interp_unknown(JNIEnv* env, jobject ret, char *transporth,
+		u_int32_t len) {
 	jbyteArray tmp = (*env)->NewByteArray(env, len);
 
 	jbyte toCopy[len];
@@ -92,7 +87,8 @@ static void _interp_unknown(jobject ret, char *transporth, u_int32_t len) {
 	(*env)->CallVoidMethod(env, ret, rawMethod, tmp);
 }
 
-static void _interp_tcp(jobject ret, struct tcphdr *tcph, u_int32_t len) {
+static void _interp_tcp(JNIEnv* env, jobject ret, struct tcphdr *tcph,
+		u_int32_t len) {
 	if (len < sizeof(struct tcphdr)) {
 		ipulog_perror("Invalid tcp header.");
 	}
@@ -100,52 +96,54 @@ static void _interp_tcp(jobject ret, struct tcphdr *tcph, u_int32_t len) {
 	char tmp[512];
 
 	sprintf(tmp, "%u", ntohs(tcph->source));
-	setField(ret, "spt", tmp);
+	setField(env, ret, "spt", tmp);
 	sprintf(tmp, "%u", ntohs(tcph->dest));
-	setField(ret, "dpt", tmp);
+	setField(env, ret, "dpt", tmp);
 	sprintf(tmp, "%u", ntohl(tcph->seq));
-	setField(ret, "seq", tmp);
+	setField(env, ret, "seq", tmp);
 	sprintf(tmp, "%u", ntohl(tcph->ack_seq));
-	setField(ret, "ack", tmp);
+	setField(env, ret, "ack", tmp);
 	sprintf(tmp, "%u", ntohs(tcph->window));
-	setField(ret, "win", tmp);
+	setField(env, ret, "win", tmp);
 	sprintf(tmp, "%u", tcph->check);
-	setField(ret, "tcp_sum", tmp);
+	setField(env, ret, "tcp_sum", tmp);
 
 	if (tcph->urg) {
-		setField(ret, "urpF", "1");
+		setField(env, ret, "urpF", "1");
 		sprintf(tmp, "%u", ntohs(tcph->urg_ptr));
-		setField(ret, "urgp", tmp);
+		setField(env, ret, "urgp", tmp);
 	}
 	if (tcph->ack)
-		setField(ret, "ackF", "1");
+		setField(env, ret, "ackF", "1");
 	if (tcph->psh)
-		setField(ret, "pshF", "1");
+		setField(env, ret, "pshF", "1");
 	if (tcph->rst)
-		setField(ret, "rstF", "1");
+		setField(env, ret, "rstF", "1");
 	if (tcph->syn)
-		setField(ret, "synF", "1");
+		setField(env, ret, "synF", "1");
 	if (tcph->fin)
-		setField(ret, "finF", "1");
+		setField(env, ret, "finF", "1");
 }
 
-static void _interp_udp(jobject ret, struct udphdr *udph, u_int32_t len) {
+static void _interp_udp(JNIEnv* env, jobject ret, struct udphdr *udph,
+		u_int32_t len) {
 	if (len < sizeof(struct udphdr)) {
 		ipulog_perror("Invalid udp header.");
 	}
 
 	char tmp[512];
 	sprintf(tmp, "%u", ntohs(udph->source));
-	setField(ret, "spt", tmp);
+	setField(env, ret, "spt", tmp);
 	sprintf(tmp, "%u", ntohs(udph->dest));
-	setField(ret, "dpt", tmp);
+	setField(env, ret, "dpt", tmp);
 	sprintf(tmp, "%u", ntohs(udph->len));
-	setField(ret, "udp_len", tmp);
+	setField(env, ret, "udp_len", tmp);
 	sprintf(tmp, "%u", udph->check);
-	setField(ret, "udp_sum", tmp);
+	setField(env, ret, "udp_sum", tmp);
 }
 
-static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
+static void _interp_icmp(JNIEnv* env, jobject ret, struct icmphdr *icmph,
+		u_int32_t len) {
 	if (len < sizeof(struct icmphdr)) {
 		ipulog_perror("Invalid icmp header.");
 	}
@@ -153,9 +151,9 @@ static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
 	char tmp[512];
 
 	sprintf(tmp, "%u", icmph->type);
-	setField(ret, "type", tmp);
+	setField(env, ret, "type", tmp);
 	sprintf(tmp, "%u", icmph->code);
-	setField(ret, "code", tmp);
+	setField(env, ret, "code", tmp);
 
 	char tmpAddr[INET_ADDRSTRLEN];
 	u_int32_t paddr;
@@ -163,30 +161,31 @@ static void _interp_icmp(jobject ret, struct icmphdr *icmph, u_int32_t len) {
 	case ICMP_ECHO:
 	case ICMP_ECHOREPLY:
 		sprintf(tmp, "%u", ntohs(icmph->un.echo.id));
-		setField(ret, "echo_id", tmp);
+		setField(env, ret, "echo_id", tmp);
 		sprintf(tmp, "%u", ntohs(icmph->un.echo.sequence));
-		setField(ret, "echo_seq", tmp);
+		setField(env, ret, "echo_seq", tmp);
 		break;
 	case ICMP_REDIRECT:
 	case ICMP_PARAMETERPROB:
 		paddr = ntohl(icmph->un.gateway);
 		sprintf(tmp, "%s",
 				(char *) inet_ntop(AF_INET, &paddr, tmpAddr, sizeof(tmpAddr)));
-		setField(ret, "gateway", tmp);
+		setField(env, ret, "gateway", tmp);
 		break;
 	case ICMP_DEST_UNREACH:
 		if (icmph->code == ICMP_FRAG_NEEDED) {
 			sprintf(tmp, "%u", ntohs(icmph->un.frag.mtu));
-			setField(ret, "mtu", tmp);
+			setField(env, ret, "mtu", tmp);
 		}
 		break;
 	}
 
 	sprintf(tmp, "%u", icmph->checksum);
-	setField(ret, "icmp_sum", tmp);
+	setField(env, ret, "icmp_sum", tmp);
 }
 
-static void _interp_igmp(jobject ret, struct igmp * igmph, u_int32_t len) {
+static void _interp_igmp(JNIEnv* env, jobject ret, struct igmp * igmph,
+		u_int32_t len) {
 	if (len < sizeof(struct igmp)) {
 		ipulog_perror("Invalid igmp header.");
 	}
@@ -194,15 +193,16 @@ static void _interp_igmp(jobject ret, struct igmp * igmph, u_int32_t len) {
 	char tmp[512];
 
 	sprintf(tmp, "%u", igmph->igmp_type);
-	setField(ret, "type", tmp);
+	setField(env, ret, "type", tmp);
 	sprintf(tmp, "%u", igmph->igmp_code);
-	setField(ret, "code", tmp);
-	setField(ret, "group",
+	setField(env, ret, "code", tmp);
+	setField(env, ret, "group",
 			(char *) inet_ntop(AF_INET, &igmph->igmp_group, tmp,
 					sizeof(struct in_addr)));
 }
 
-static void _interp_icmpv6(jobject ret, struct icmp6_hdr *icmph, u_int32_t len) {
+static void _interp_icmpv6(JNIEnv* env, jobject ret, struct icmp6_hdr *icmph,
+		u_int32_t len) {
 
 	if (len < sizeof(struct icmp6_hdr)) {
 		ipulog_perror("Invalid icmp6 header.");
@@ -211,22 +211,22 @@ static void _interp_icmpv6(jobject ret, struct icmp6_hdr *icmph, u_int32_t len) 
 	char tmp[512];
 
 	sprintf(tmp, "%u", icmph->icmp6_type);
-	setField(ret, "type", tmp);
+	setField(env, ret, "type", tmp);
 	sprintf(tmp, "%u", icmph->icmp6_code);
-	setField(ret, "code", tmp);
+	setField(env, ret, "code", tmp);
 
 	switch (icmph->icmp6_type) {
 	case ICMP6_ECHO_REQUEST:
 	case ICMP6_ECHO_REPLY:
 		sprintf(tmp, "%u", ntohs(icmph->icmp6_id));
-		setField(ret, "echo_id", tmp);
+		setField(env, ret, "echo_id", tmp);
 		sprintf(tmp, "%u", ntohs(icmph->icmp6_seq));
-		setField(ret, "echo_seq", tmp);
+		setField(env, ret, "echo_seq", tmp);
 		break;
 	}
 
 	sprintf(tmp, "%u", icmph->icmp6_cksum);
-	setField(ret, "icmpv6_sum", tmp);
+	setField(env, ret, "icmpv6_sum", tmp);
 }
 
 typedef struct sctphdr {
@@ -236,7 +236,8 @@ typedef struct sctphdr {
 	__be32 checksum;
 }__attribute__((packed)) sctp_sctphdr_t;
 
-static void _interp_sctp(jobject ret, struct sctphdr *sctph, u_int32_t len) {
+static void _interp_sctp(JNIEnv* env, jobject ret, struct sctphdr *sctph,
+		u_int32_t len) {
 
 	if (len < sizeof(struct sctphdr)) {
 		ipulog_perror("Invalid sctp header.");
@@ -245,11 +246,11 @@ static void _interp_sctp(jobject ret, struct sctphdr *sctph, u_int32_t len) {
 	char tmp[512];
 
 	sprintf(tmp, "%u", ntohs(sctph->source));
-	setField(ret, "spt", tmp);
+	setField(env, ret, "spt", tmp);
 	sprintf(tmp, "%u", ntohs(sctph->dest));
-	setField(ret, "dpt", tmp);
+	setField(env, ret, "dpt", tmp);
 	sprintf(tmp, "%u", ntohl(sctph->checksum));
-	setField(ret, "sctp_sum", tmp);
+	setField(env, ret, "sctp_sum", tmp);
 }
 
 static int ip6_ext_hdr(u_int8_t nexthdr) {
@@ -266,7 +267,8 @@ static int ip6_ext_hdr(u_int8_t nexthdr) {
 	}
 }
 
-static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
+static jobject _interp_ipv6hdr(JNIEnv* env, jobject callerObj,
+		ulog_packet_msg_t *pkt, u_int32_t len) {
 	struct ip6_hdr * ipv6h = (struct ip6_hdr*) pkt->payload;
 	unsigned int ptr, hdrlen = 0;
 	u_int8_t curhdr;
@@ -284,16 +286,16 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	switch (curhdr) {
 	case IPPROTO_TCP:
-		ret = newPacket("tcp");
+		ret = newPacket(env, callerObj, "tcp");
 		break;
 	case IPPROTO_UDP:
-		ret = newPacket("udp");
+		ret = newPacket(env, callerObj, "udp");
 		break;
 	case IPPROTO_ICMPV6:
-		ret = newPacket("icmpv6");
+		ret = newPacket(env, callerObj, "icmpv6");
 		break;
 	default:
-		ret = newPacket("IPv6unknown");
+		ret = newPacket(env, callerObj, "IPv6unknown");
 		break;
 	}
 
@@ -316,10 +318,10 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 			len -= hdrlen;
 
 			sprintf(tmp, "%u", ntohs(fh->ip6f_offlg & IP6F_OFF_MASK));
-			setField(ret, "frag", tmp);
+			setField(env, ret, "frag", tmp);
 
 			sprintf(tmp, "%08x", ntohl(fh->ip6f_ident));
-			setField(ret, "id", tmp);
+			setField(env, ret, "id", tmp);
 
 			if (ntohs(fh->ip6f_offlg & IP6F_OFF_MASK))
 				fragment = 1;
@@ -363,16 +365,16 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 		switch (curhdr) {
 		case IPPROTO_TCP:
-			ret = newPacket("tcp");
+			ret = newPacket(env, callerObj, "tcp");
 			break;
 		case IPPROTO_UDP:
-			ret = newPacket("udp");
+			ret = newPacket(env, callerObj, "udp");
 			break;
 		case IPPROTO_ICMPV6:
-			ret = newPacket("icmpv6");
+			ret = newPacket(env, callerObj, "icmpv6");
 			break;
 		default:
-			ret = newPacket("IPv6unknown");
+			ret = newPacket(env, callerObj, "IPv6unknown");
 			break;
 		}
 	}
@@ -380,42 +382,43 @@ static jobject _interp_ipv6hdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 	if (fragment)
 		return ret;
 
-	setField(ret, "src", (char *) &ipv6h->ip6_src);
-	setField(ret, "dst", (char *) &ipv6h->ip6_dst);
+	setField(env, ret, "src", (char *) &ipv6h->ip6_src);
+	setField(env, ret, "dst", (char *) &ipv6h->ip6_dst);
 
 	sprintf(tmp, "%u", ntohs(ipv6h->ip6_plen));
-	setField(ret, "tot_len", tmp);
+	setField(env, ret, "tot_len", tmp);
 
 	sprintf(tmp, "%u", ntohl(ipv6h->ip6_flow & 0x0ff00000) >> 20);
-	setField(ret, "tc", tmp);
+	setField(env, ret, "tc", tmp);
 
 	sprintf(tmp, "%u", ipv6h->ip6_hlim);
-	setField(ret, "hoplimit", tmp);
+	setField(env, ret, "hoplimit", tmp);
 
 	sprintf(tmp, "%u", ntohl(ipv6h->ip6_flow & 0x000fffff));
-	setField(ret, "flowlabel", tmp);
+	setField(env, ret, "flowlabel", tmp);
 	sprintf(tmp, "%u", curhdr);
-	setField(ret, "nexthdr", tmp);
+	setField(env, ret, "nexthdr", tmp);
 
 	switch (curhdr) {
 	case IPPROTO_TCP:
-		_interp_tcp(ret, (void *) ipv6h + ptr, len);
+		_interp_tcp(env, ret, (void *) ipv6h + ptr, len);
 		break;
 	case IPPROTO_UDP:
-		_interp_udp(ret, (void *) ipv6h + ptr, len);
+		_interp_udp(env, ret, (void *) ipv6h + ptr, len);
 		break;
 	case IPPROTO_ICMPV6:
-		_interp_icmpv6(ret, (void *) ipv6h + ptr, len);
+		_interp_icmpv6(env, ret, (void *) ipv6h + ptr, len);
 		break;
 
 	default:
-		_interp_unknown(ret, (void *) ipv6h + ptr, len);
+		_interp_unknown(env, ret, (void *) ipv6h + ptr, len);
 		break;
 	}
 	return ret;
 }
 
-static jobject _interp_arp(ulog_packet_msg_t *pkt, u_int32_t len) {
+static jobject _interp_arp(JNIEnv* env, jobject callerObj,
+		ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	const struct ether_arp *arph = (struct ether_arp*) pkt->payload;
 
@@ -423,29 +426,30 @@ static jobject _interp_arp(ulog_packet_msg_t *pkt, u_int32_t len) {
 		ipulog_perror("Invalid arp header.");
 	}
 
-	jobject retPacket = newPacket("arp");
+	jobject retPacket = newPacket(env, callerObj, "arp");
 
 	char tmp[512];
 
 	sprintf(tmp, "%u", ntohs(arph->arp_op));
-	setField(retPacket, "opcode", tmp);
+	setField(env, retPacket, "opcode", tmp);
 
-	setField(retPacket, "arp_src", (char *) &arph->arp_spa);
-	setField(retPacket, "arp_dst", (char *) &arph->arp_tpa);
+	setField(env, retPacket, "arp_src", (char *) &arph->arp_spa);
+	setField(env, retPacket, "arp_dst", (char *) &arph->arp_tpa);
 
 	u_int8_t * mac = (u_int8_t *) arph->arp_sha;
 	sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2],
 			mac[3], mac[4], mac[5]);
-	setField(retPacket, "arp_hwdst", tmp);
+	setField(env, retPacket, "arp_hwdst", tmp);
 
 	mac = (u_int8_t *) arph->arp_tha;
 	sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2],
 			mac[3], mac[4], mac[5]);
-	setField(retPacket, "arp_hwdst", tmp);
+	setField(env, retPacket, "arp_hwdst", tmp);
 	return retPacket;
 }
 
-static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
+static jobject _interp_iphdr(JNIEnv* env, jobject callerObj,
+		ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	struct iphdr *iph = (struct iphdr *) pkt->payload;
 
@@ -461,90 +465,91 @@ static jobject _interp_iphdr(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	switch (iph->protocol) {
 	case IPPROTO_TCP:
-		retPacket = newPacket("tcp");
+		retPacket = newPacket(env, callerObj, "tcp");
 		break;
 	case IPPROTO_UDP:
-		retPacket = newPacket("udp");
+		retPacket = newPacket(env, callerObj, "udp");
 		break;
 	case IPPROTO_ICMP:
-		retPacket = newPacket("icmp");
+		retPacket = newPacket(env, callerObj, "icmp");
 		break;
 	case IPPROTO_SCTP:
-		retPacket = newPacket("sctp");
+		retPacket = newPacket(env, callerObj, "sctp");
 		break;
 	case IPPROTO_IGMP:
-		retPacket = newPacket("igmp");
+		retPacket = newPacket(env, callerObj, "igmp");
 		break;
 	default:
-		retPacket = newPacket("IPv4unknown");
+		retPacket = newPacket(env, callerObj, "IPv4unknown");
 		break;
 	}
 
 	char tmp[512];
 
-	setField(retPacket, "src",
+	setField(env, retPacket, "src",
 			(char *) inet_ntop(AF_INET, &iph->saddr, tmp, sizeof(tmp)));
-	setField(retPacket, "dst",
+	setField(env, retPacket, "dst",
 			(char *) inet_ntop(AF_INET, &iph->daddr, tmp, sizeof(tmp)));
 
 	sprintf(tmp, "%02X", iph->tos & IPTOS_TOS_MASK);
-	setField(retPacket, "tos", tmp);
+	setField(env, retPacket, "tos", tmp);
 	sprintf(tmp, "0x%02X", iph->tos & IPTOS_PREC_MASK);
-	setField(retPacket, "prec", tmp);
+	setField(env, retPacket, "prec", tmp);
 	sprintf(tmp, "%u", iph->ttl);
-	setField(retPacket, "ttl", tmp);
+	setField(env, retPacket, "ttl", tmp);
 	sprintf(tmp, "%u", iph->tot_len);
-	setField(retPacket, "tot_len", tmp);
+	setField(env, retPacket, "tot_len", tmp);
 	sprintf(tmp, "%u", iph->id);
-	setField(retPacket, "id", tmp);
+	setField(env, retPacket, "id", tmp);
 	sprintf(tmp, "%u", iph->protocol);
-	setField(retPacket, "transport_proto", tmp);
+	setField(env, retPacket, "transport_proto", tmp);
 
 	u_int16_t fragOff = ntohs(iph->frag_off);
 
 	if (fragOff & IP_RF)
-		setField(retPacket, "rf", "1");
+		setField(env, retPacket, "rf", "1");
 
 	if (fragOff & IP_DF)
-		setField(retPacket, "df", "1");
+		setField(env, retPacket, "df", "1");
 
 	if (fragOff & IP_MF)
-		setField(retPacket, "mf", "1");
+		setField(env, retPacket, "mf", "1");
 
 	if (fragOff & IP_OFFMASK) {
 		sprintf(tmp, "%u", fragOff & IP_OFFMASK);
-		setField(retPacket, "frag", tmp);
+		setField(env, retPacket, "frag", tmp);
 	}
 
 	switch (iph->protocol) {
 	case IPPROTO_TCP:
-		_interp_tcp(retPacket, transportHdr, len);
+		_interp_tcp(env, retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_UDP:
-		_interp_udp(retPacket, transportHdr, len);
+		_interp_udp(env, retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_ICMP:
-		_interp_icmp(retPacket, transportHdr, len);
+		_interp_icmp(env, retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_SCTP:
-		_interp_sctp(retPacket, transportHdr, len);
+		_interp_sctp(env, retPacket, transportHdr, len);
 		break;
 
 	case IPPROTO_IGMP:
-		_interp_igmp(retPacket, transportHdr, len);
+		_interp_igmp(env, retPacket, transportHdr, len);
 		break;
 
 	default:
-		_interp_unknown(retPacket, transportHdr, len);
+		_interp_unknown(env, retPacket, transportHdr, len);
 		break;
 	}
 	return retPacket;
 }
 
-static jobject _interp_bridge(ulog_packet_msg_t *pkt, u_int32_t len) {
+static jobject _interp_bridge(JNIEnv* env, jobject callerObj,
+		ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	// TODO: Detect link protocol
 	const u_int16_t proto = ETH_P_IP;
@@ -553,13 +558,13 @@ static jobject _interp_bridge(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	switch (proto) {
 	case ETH_P_IP:
-		retPacket = _interp_iphdr(pkt, len);
+		retPacket = _interp_iphdr(env, callerObj, pkt, len);
 		break;
 	case ETH_P_IPV6:
-		retPacket = _interp_ipv6hdr(pkt, len);
+		retPacket = _interp_ipv6hdr(env, callerObj, pkt, len);
 		break;
 	case ETH_P_ARP:
-		retPacket = _interp_arp(pkt, len);
+		retPacket = _interp_arp(env, callerObj, pkt, len);
 		break;
 		/* ETH_P_8021Q ?? others? */
 	};
@@ -567,7 +572,8 @@ static jobject _interp_bridge(ulog_packet_msg_t *pkt, u_int32_t len) {
 	return retPacket;
 }
 
-static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
+static jobject _interp_pkt(JNIEnv* env, jobject callerObj,
+		ulog_packet_msg_t *pkt, u_int32_t len) {
 	jobject retPacket;
 
 	//TODO: Detect network protocol
@@ -575,76 +581,83 @@ static jobject _interp_pkt(ulog_packet_msg_t *pkt, u_int32_t len) {
 
 	switch (family) {
 	case AF_INET:
-		retPacket = _interp_iphdr(pkt, len);
+		retPacket = _interp_iphdr(env, callerObj, pkt, len);
 		break;
 	case AF_INET6:
-		retPacket = _interp_ipv6hdr(pkt, len);
+		retPacket = _interp_ipv6hdr(env, callerObj, pkt, len);
 		break;
 	case AF_BRIDGE:
-		retPacket = _interp_bridge(pkt, len);
+		retPacket = _interp_bridge(env, callerObj, pkt, len);
 		break;
 	}
 
 	char tmp[512];
 
 	sprintf(tmp, "%u", pkt->hook);
-	setField(retPacket, "hook", tmp);
+	setField(env, retPacket, "hook", tmp);
 	sprintf(tmp, "%lu", pkt->mark);
-	setField(retPacket, "mark", tmp);
+	setField(env, retPacket, "mark", tmp);
 
-	setField(retPacket, "inDev", pkt->indev_name);
-	setField(retPacket, "outDev", pkt->outdev_name);
+	setField(env, retPacket, "inDev", pkt->indev_name);
+	setField(env, retPacket, "outDev", pkt->outdev_name);
 
 	sprintf(tmp, "%ld", pkt->timestamp_sec);
-	setField(retPacket, "sec", tmp);
+	setField(env, retPacket, "sec", tmp);
 
 	sprintf(tmp, "%ld", pkt->timestamp_usec);
-	setField(retPacket, "usec", tmp);
+	setField(env, retPacket, "usec", tmp);
 
 	if (strlen(pkt->prefix))
-		setField(retPacket, "prefix", pkt->prefix);
+		setField(env, retPacket, "prefix", pkt->prefix);
 
 	if (pkt->mac_len) {
 		unsigned char *mac = pkt->mac;
 		sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2],
 				mac[3], mac[4], mac[5]);
-		setField(retPacket, "mac", tmp);
+		setField(env, retPacket, "mac", tmp);
 	}
 
 	return retPacket;
 }
 
 JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_receiveNewPacket(
-		JNIEnv * env, jobject obj) {
+		JNIEnv * env, jobject callerObj, jint group) {
 
 	unsigned char buf[BUFSIZE];
-	len = ipulog_read(h, buf, BUFSIZE, 1);
+	struct ipulog_handle* handler = ipulogHandles[group];
+	int len = ipulog_read(handler, buf, BUFSIZE, 1);
 
 	if (len <= 0) {
 		ipulog_perror("readed packet too short");
 		return;
 	}
 
+	ulog_packet_msg_t* upkt;
+
 	jobject retPacket;
-	while ((upkt = ipulog_get_packet(h, buf, len))) {
-		retPacket = _interp_pkt(upkt, len);
-		(*env)->CallVoidMethod(env, obj, notificationMethod, retPacket);
+	while ((upkt = ipulog_get_packet(handler, buf, len))) {
+		retPacket = _interp_pkt(env, callerObj, upkt, len);
+		(*env)->CallVoidMethod(env, callerObj, notificationMethod, retPacket);
 	}
 }
 
 JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_init(
-		JNIEnv * javaEnv, jobject javaObj, jint group) {
-	env = javaEnv;
-	obj = javaObj;
-	jclass cls = (*env)->GetObjectClass(env, obj);
+		JNIEnv * env, jobject callerObj, jint group) {
+	jclass cls = (*env)->GetObjectClass(env, callerObj);
 	notificationMethod = (*env)->GetMethodID(env, cls, "notifyNewPacket",
 			"(Ljava/lang/Object;)V");
 	buildMethod = (*env)->GetMethodID(env, cls, "buildNewPacket",
 			"(Ljava/lang/String;)Lnet/sf/iptablesJava/log/Packet;");
 
-	/* create ipulog handle */
-	h = ipulog_create_handle(ipulog_group2gmask(group), BUFSIZE);
-	if (!h) {
+	if (ipulogHandles == NULL )
+		ipulogHandles = (struct ipulog_handle**) malloc(
+				32 * sizeof(struct ipulog_handle*));
+
+	/* init ipulog handle */
+	ipulogHandles[group] = ipulog_create_handle(ipulog_group2gmask(group),
+			BUFSIZE);
+
+	if (!ipulogHandles[group]) {
 		/* if some error occurrs, print it to stderr */
 		ipulog_perror(NULL );
 		return;

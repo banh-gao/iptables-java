@@ -35,11 +35,12 @@ public class Test {
 
 	public static void main(String[] args) {
 		System.out.println(System.getProperty("java.library.path"));
-		testLog();
+		testLog(0);
+		testLog(1);
 	}
 
-	private static void testLog() {
-		LogTracker t = LogTracker.getInstance();
+	private static void testLog(int group) {
+		LogTracker t = LogTracker.getInstance(group);
 
 		t.addLogListener(new LogListener() {
 
