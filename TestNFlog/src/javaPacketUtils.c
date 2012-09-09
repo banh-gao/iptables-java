@@ -9,8 +9,9 @@
 #include <jni.h>
 #include <javaPacketUtils.h>
 
-javaRef* getNewJavaRef(JNIEnv* env, jobject callerObj) {
+//#define DEBUG 1
 
+javaRef* getNewJavaRef(JNIEnv* env, jobject callerObj) {
 	javaRef* ref = (javaRef*) malloc(sizeof(javaRef));
 
 	ref->env = env;
@@ -25,6 +26,12 @@ javaRef* getNewJavaRef(JNIEnv* env, jobject callerObj) {
 	return ref;
 }
 
+void notifyPacket(javaRef* javaRef, jobject* packet) {
+	(*javaRef->env)->CallVoidMethod(javaRef->env, javaRef->object,
+			javaRef->notification, *packet);
+}
+
+#ifndef DEBUG
 void setField(javaRef* javaRef, jobject* retPacket, char * field, char * value) {
 	jclass retPacketCls = (*javaRef->env)->GetObjectClass(javaRef->env,
 			*retPacket);
@@ -34,6 +41,10 @@ void setField(javaRef* javaRef, jobject* retPacket, char * field, char * value) 
 	(*javaRef->env)->CallVoidMethod(javaRef->env, *retPacket, setMethod,
 			(*javaRef->env)->NewStringUTF(javaRef->env, field),
 			(*javaRef->env)->NewStringUTF(javaRef->env, value));
+}
+
+void setHWPacket(javaRef* javaRef, jobject* retPacket, jobject* hwPacket) {
+	//TODO
 }
 
 jobject* newPacket(javaRef* javaRef, char* transportProto) {
@@ -48,7 +59,25 @@ jobject* newPacket(javaRef* javaRef, char* transportProto) {
 	return ptr;
 }
 
-void notifyPacket(javaRef* javaRef, jobject* packet) {
-	(*javaRef->env)->CallVoidMethod(javaRef->env, javaRef->object,
-			javaRef->notification, *packet);
+jobject* newHWPacket(javaRef* javaRef, char* HWProto) {
+	//TODO
+	return NULL ;
 }
+#endif
+
+#ifdef DEBUG
+void setField(javaRef* javaRef, jobject* retPacket, char * field, char * value) {
+	printf("%s=%s ", field, value);
+}
+
+void setHWPacket(javaRef* javaRef, jobject* retPacket, jobject* hwPacket) {
+}
+
+jobject* newPacket(javaRef* javaRef, char* transportProto) {
+	return NULL;
+}
+
+jobject* newHWPacket(javaRef* javaRef, char* HWProto) {
+	return NULL;
+}
+#endif

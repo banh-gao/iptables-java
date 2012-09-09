@@ -19,7 +19,11 @@ javaRef* getNewJavaRef(JNIEnv* env,jobject callerObj);
 
 void setField(javaRef* javaRef, jobject* retPacket, char * field, char * value);
 
+void setHWPacket(javaRef* javaRef, jobject* retPacket, jobject* hwPacket);
+
 jobject* newPacket(javaRef* javaRef, char* transportProto);
+
+jobject* newHWPacket(javaRef* javaRef, char* HWProto);
 
 void notifyPacket(javaRef* javaRef, jobject* packet);
 

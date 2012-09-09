@@ -25,11 +25,10 @@
 package net.sf.iptablesJava.log;
 
 /**
- * This thread listens to netfilter log notifications and notifies the java
- * registered log listeners
+ * This class is the interface between java code and low level library, log events are notified to the associated log tracker
  * 
  */
-class NetFilterLogTask extends Thread {
+class NetFilterLogTask {
 
 	private final LogTracker logTracker;
 	private final int nfGroup;
@@ -45,21 +44,11 @@ class NetFilterLogTask extends Thread {
 		this.nfGroup = nfGroup;
 	}
 
-	@Override
-	public void run() {
-		init(nfGroup);
-		while (!terminate) {
-			receiveNewPacket(nfGroup);
-		}
-	}
-
 	public void requestTerminate(boolean terminate) {
 		this.terminate = terminate;
 	}
 
-	private native void receiveNewPacket(int group);
-
-	private native void init(int group);
+	native void init(int group) throws InitializationException;
 
 	/**
 	 * @param protocol

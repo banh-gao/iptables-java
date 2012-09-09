@@ -27,19 +27,20 @@ package net.sf.iptablesJava;
 import net.sf.iptablesJava.connection.ConnTracker;
 import net.sf.iptablesJava.connection.Connection;
 import net.sf.iptablesJava.connection.ConnectionListener;
+import net.sf.iptablesJava.log.InitializationException;
 import net.sf.iptablesJava.log.LogListener;
 import net.sf.iptablesJava.log.LogTracker;
 import net.sf.iptablesJava.log.Packet;
 
 public class Test {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InitializationException {
 		System.out.println(System.getProperty("java.library.path"));
 		testLog(0);
 		testLog(1);
 	}
 
-	private static void testLog(int group) {
+	private static void testLog(int group) throws InitializationException {
 		LogTracker t = LogTracker.getInstance(group);
 
 		t.addLogListener(new LogListener() {

@@ -47,9 +47,10 @@ public class LogTracker {
 	/**
 	 * Get a log tracker, the netfilter group is set to the default group 0.
 	 * All logs will be notified in cronological order.
+	 * @throws InitializationException 
 	 * @throws BindingException 
 	 */
-	public static LogTracker getInstance()  {
+	public static LogTracker getInstance() throws InitializationException  {
 		return getInstance(0);
 	}
 
@@ -59,9 +60,10 @@ public class LogTracker {
 	 * 
 	 * @param nfGroup
 	 *            The netfilter group
+	 * @throws InitializationException 
 	 * @throws BindingException 
 	 */
-	public static LogTracker getInstance(int nfGroup)  {
+	public static LogTracker getInstance(int nfGroup) throws InitializationException  {
 		LogTracker t = trackerInstances.get(nfGroup);
 		if (t == null) {
 			t = new LogTracker(nfGroup);
@@ -70,10 +72,10 @@ public class LogTracker {
 		return t;
 	}
 
-	private LogTracker(int nfGroup)  {
+	private LogTracker(int nfGroup) throws InitializationException  {
 		this.nfGroup = nfGroup;
 		listenerTask = new NetFilterLogTask(this, nfGroup);
-		listenerTask.start();
+		listenerTask.init(nfGroup);
 	}
 
 	/**

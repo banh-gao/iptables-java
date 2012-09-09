@@ -34,6 +34,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/iptables-java/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TestNFlog/include}&quot;"/>
 								</option>
+								<option id="gnu.c.compiler.option.misc.other.1535673448" name="Other flags" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.2077484857" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.1252489833" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release">
@@ -49,8 +50,8 @@
 							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.1385640056" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release">
 								<option id="gnu.both.asm.option.include.paths.1921695357" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/lib/jvm/java-7-openjdk-amd64/include"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/iptables-java/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TestNFlog/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/iptables-java/include}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1614602395" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>

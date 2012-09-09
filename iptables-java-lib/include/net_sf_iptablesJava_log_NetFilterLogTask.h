@@ -7,20 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#undef net_sf_iptablesJava_log_NetFilterLogTask_MIN_PRIORITY
-#define net_sf_iptablesJava_log_NetFilterLogTask_MIN_PRIORITY 1L
-#undef net_sf_iptablesJava_log_NetFilterLogTask_NORM_PRIORITY
-#define net_sf_iptablesJava_log_NetFilterLogTask_NORM_PRIORITY 5L
-#undef net_sf_iptablesJava_log_NetFilterLogTask_MAX_PRIORITY
-#define net_sf_iptablesJava_log_NetFilterLogTask_MAX_PRIORITY 10L
-/*
- * Class:     net_sf_iptablesJava_log_NetFilterLogTask
- * Method:    receiveNewPacket
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_net_sf_iptablesJava_log_NetFilterLogTask_receiveNewPacket
-  (JNIEnv *, jobject, jint);
-
 /*
  * Class:     net_sf_iptablesJava_log_NetFilterLogTask
  * Method:    init
